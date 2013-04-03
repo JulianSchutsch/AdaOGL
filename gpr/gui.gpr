@@ -1,0 +1,24 @@
+with "config";
+
+abstract project GUI is
+
+   CompilerSwitches:=();
+   BinderSwitches:=();
+   LinkerSwitches:=();
+
+   case Config.wgl is
+      when "On" =>
+	     LinkerSwitches:=LinkerSwitches
+		   &("-lopengl32","-lgdi32");
+	  when "Off" =>
+   end case;
+
+   case Config.xlib is
+      when "On" =>
+	     LinkerSwitches:=LinkerSwitches
+		    &("-lX11","-lGL");
+	  when "Off" =>
+   end case;
+	     
+
+end GUI;

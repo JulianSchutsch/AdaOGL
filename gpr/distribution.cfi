@@ -1,0 +1,7 @@
+element choice
+  node "Distribution.DistributedSystemsImplementation"
+  description "Distribution System:"
+  set
+    key "MPI"
+    description "Message Passing Interface(MPICH2)"
+  end set

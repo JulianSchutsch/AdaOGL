@@ -1,0 +1,21 @@
+with "config";
+
+abstract project Network is
+
+   CompilerSwitches := ();
+   BinderSwitches   := ();
+   LinkerSwitches   := ();
+
+   case config.bsdsockets is
+      when "On" =>
+	     case config.Detected is
+		    when "Unknown" =>
+			when "Linux" =>
+			when "WindowsNT" =>
+               LinkerSwitches:=LinkerSwitches
+			     &("-lws2_32");
+		    end case;
+	  when "Off" =>
+   end case;
+
+end Network;

@@ -1,0 +1,115 @@
+with "config";
+
+abstract project Common is
+
+   type Backtrace_Type is ("On","Off");
+   type Profiling_Type is ("On","Off");
+
+   Backtrace : Backtrace_Type := external("Backtrace","Off");
+   Profiling : Profiling_Type := external("Profiling","Off");
+
+   Dir := Common'Project_Dir & "/";
+
+   SourceDirectories:=
+     (Dir & "../src",
+      Dir & "../src/basics",
+      Dir & "../src/basics/littleendian", -- Currently no plattform supported has different endianess
+      Dir & "../src/network",
+      Dir & "../src/simcontrol",
+      Dir & "../src/simnode",
+      Dir & "../src/protocols",
+      Dir & "../src/simclient",
+      Dir & "../src/gui",
+      Dir & "../src/opengl",
+      Dir & "../src/gui/themes/yellowblue",
+      Dir & "../src/canvas",
+      Dir & "../src/distributedsystems",
+      Dir & "../src/distributedsystems/mpi",
+      Dir & "../src/simclientgui",
+      Dir & "../src/logging",
+      Dir & "../src/xlib",
+      Dir & "../src/win32",
+      Dir & "../src/linux",
+      Dir & "../src/simconfig");
+
+   ObjectDirectory:=Dir & "../build";
+   ExecDirectory:=".";
+
+   CompilerSwitches:=
+     ("-gnato", -- Overflow checking
+      "-gnatn", -- Inlining
+      "-g",     -- Generate Debugging information
+      "-gnatf", -- Full error messages
+      "-O3",     -- Full optimisation
+      "-fno-strict-aliasing",
+      "-gnatp",
+      "-gnatE"
+     );
+
+   LinkerSwitches:=("-lgmem","-gnatE");
+
+   case Profiling is
+
+      when "On" =>
+
+         CompilerSwitches:=CompilerSwitches &
+          ("-pg");
+         LinkerSwitches:=LinkerSwitches &
+          ("-pg");
+
+      when "Off" =>
+
+         null;
+
+   end case;
+
+   LanguagesUsed:=("Ada");
+
+   BinderSwitches:=
+     ("-E");
+
+   case Config.Detected is
+
+      when "WindowsNT" =>
+
+         SourceDirectories:=SourceDirectories &
+           (Dir & "../src/network/win32",
+            Dir & "../src/basics/win32");
+
+         LinkerSwitches:=LinkerSwitches &
+           ("-L.",
+            "-lfreetype6");
+
+      when "Linux" =>
+
+         SourceDirectories:=SourceDirectories &
+           (Dir & "../src/network/linux",
+            Dir & "../src/basics/linux");
+
+         LinkerSwitches:=LinkerSwitches &
+           ("-lfreetype");
+
+         LanguagesUsed:=LanguagesUsed &
+           ("C");
+
+      when "Unknown" =>
+
+   end case;
+
+   case Backtrace is
+
+      when "On" =>
+
+         SourceDirectories:=SourceDirectories &
+           (Dir & "../src/basics/backtrace");
+
+      when "Off" =>
+
+         SourceDirectories:=SourceDirectories &
+           (Dir & "../src/basics/nobacktrace");
+
+   end case;
+
+   for Source_Dirs use ();
+
+end Common;

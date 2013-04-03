@@ -1,0 +1,111 @@
+element constantstring
+  node "Logging.Implementation"
+  default "Network"
+element check
+  node "SimClientGUI.Logging"
+  description "Logging Server enabled"
+  defaultindex 1
+  set
+    key "Off"
+    options
+      element choice
+      node "Logging.Network.StreamImplementation"
+      description "Network Implementation:"
+      defaultindex 0
+      set
+        key "BSDSockets"
+        description "BSDSockets (recommended)"
+        options
+          element choice
+          node "Logging.Network.Family"
+          description "IP Family"
+          defaultindex 0
+          set
+            key "IPv4"
+            description "IPv4"
+            options
+              element string
+              node "Logging.Network.RemoteIP"
+              description "Remote IP:"
+              default "127.0.0.1"
+              element string
+              node "Logging.Network.RemotePort"
+              description "Remote Port:"
+              default "10010"
+            end options
+            key "IPv6"
+            description "IPv6"
+            options
+              element string
+              node "Logging.Network.RemoteIP"
+              description "Remote IP:"
+              default "::1"
+              element string
+              node "Logging.Network.RemotePort"
+              description "Remote Port:"
+              default "10010"
+            end options
+          end set
+        end options
+      end set
+    end options
+    key "On"
+    options
+      element choice
+      node "Logging.Network.StreamImplementation"
+      description "Network Implementation:"
+      defaultindex 0
+      set
+        key "BSDSockets"
+        description "BSDSockets (recommended)"
+        options
+          element choice
+          node "Logging.Network.Family"
+          description "IP Family"
+          defaultindex 0
+          set
+            key "IPv4"
+            description "IPv4"
+            options
+              element string
+              node "Logging.Network.BindIP"
+              description "Bind IP:"
+              default "0.0.0.0"
+              element string
+              node "Logging.Network.BindPort"
+              description "Bind Port:"
+              default "10010"
+              element string
+              node "Logging.Network.RemoteIP"
+              description "Remote IP:"
+              default "127.0.0.1"
+              element string
+              node "Logging.Network.RemotePort"
+              description "Remote Port:"
+              default "10010"
+            end options
+            key "IPv6"
+            description "IPv6"
+            options
+              element string
+              node "Logging.Network.BindIP"
+              description "Bind IP:"
+              default "::"
+              element string
+              node "Logging.Network.BindPort"
+              description "Bind Port:"
+              default "10010"
+              element string
+              node "Logging.Network.RemoteIP"
+              description "Remote IP:"
+              default "::1"
+              element string
+              node "Logging.Network.RemotePort"
+              description "Remote Port:"
+              default "10010"
+            end options
+          end set
+        end options
+      end set
+    end options
+  end set

@@ -1,0 +1,37 @@
+with "../../gpr/common";
+with "../../gpr/gui";
+
+project Listbox is
+
+   for Exec_Dir use Common.ExecDirectory;
+   for Main use ("listbox.adb");
+   for Languages use Common.Languagesused;
+
+   package Compiler is
+      for Default_Switches ("ada") use
+
+         Common.CompilerSwitches
+        &GUI.CompilerSwitches;
+
+   end Compiler;
+
+   package Binder is
+      for Default_Switches ("ada") use
+
+         Common.BinderSwitches
+        &GUI.BinderSwitches;
+
+   end Binder;
+
+   package Linker is
+      for Default_Switches ("ada") use
+
+         Common.LinkerSwitches
+        &GUI.LinkerSwitches;
+
+   end Linker;
+
+   for Object_Dir use Common.ObjectDirectory;
+   for Source_Dirs use Common.SourceDirectories & ".";
+
+end Listbox;

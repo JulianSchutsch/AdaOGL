@@ -1,0 +1,159 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsfonts, amsthm}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{wrapfig}
+\usepackage{listings}
+\begin{document}
+
+\lstset
+{
+language=Ada,
+numbers=left,
+numberstyle=\tiny\color{gray},
+stepnumber=1,
+backgroundcolor=\color{white},
+showspaces=false,
+showstringspaces=false,
+showtabs=false,
+frame=single
+}
+\section{Introduction}
+The GUI framework is build to provide simple GUI controls and to be compatible with any rendering interface chosen.
+
+Only a few design choices have to be understood to use and develop GUI objects for any application.
+Contexts provide the basic infrastructure by e.g. creating a window.
+The GUI objects chapter explains how GUI objects are created and arranged on the screen.
+Then the Canvases are introduced which provide graphical content for the GUI objects.
+
+\section{GUI Contexts}
+A context is an abstract object which must be created before any other GUI operation can be performed.
+After creation it provides a three layer desktop consisting of
+\begin{itemize}
+ \item WindowArea
+ \item ModalArea
+ \item ContextArea
+\end{itemize}
+where GUI objects can be placed.
+
+The WindowArea is where all ordinary objects should be placed unless you wish to use the ModalArea.
+The ModalArea, once the modal mode is entered, hides the WindowArea behind a partially transparent
+surface and prohibits access to any objects in the WindowArea.
+Otherwise the WindowArea and the ModalArea behave the same.
+
+The ContextArea is used only by other GUI objects to show temporary extensions like popup menues
+or dropdown lists. If anything outside the active objects is clicked, a special handler is
+called and all objects are removed from the ContextArea afterwards.
+
+A small example to create a Context,
+\begin{lstlisting}
+with GUI;
+with GUI.UseImplementations;
+procedure CreateContext is
+   Implementation : GUI.Implementation_Type;
+   Context        : GUI.Context_Type;
+begin
+   GUI.UseImplementations.Register;
+   Implementation:=GUI.Implementations
+     .FindImplementation("xlib");
+   Context:=Implementation.NewContext;
+
+   -- Use the context
+
+   Implementation.FreeContext(Context);
+   GUI.UseImplementations.Unregister;
+end CreateContext;
+\end{lstlisting}
+
+"xlib" is only one possible implementation, but configuration details are omitted here for readability.
+
+The coordinate system in each context begins in the top left corner and counts 1 for each pixel
+to the right or to the bottom.
+
+\section{GUI objects}
+The basic abstract GUI object from which all GUI objects are derived is GUI.Object\_Type.
+Most GUI objects have a parent, sisters and children which means that they are inside
+of another object, before or behind another object and may contain other objects which
+are drawn on top of them.
+
+All this is done by nesting rectangles. An ordinary rectangle is given for each GUI object
+and called Bounds (accessed by GetBounds or SetBounds). It describes its position relative
+the the parent rectangle. The bounds also include information about the visibility of the
+object.
+
+Internally the relative rectangles are nested on every change to absolute rectangles,
+which include information not only on the visual part but on the necessary cuts in the
+top left corner.
+
+The above Context example can be extended showing how to place an empty object in the WindowArea.
+\begin{lstlisting}
+   SomeObject : GUI.Object_Access;
+...
+   SomeObject:=new GUI.Object_Type;
+   SomeObject.Initialize(Context.WindowArea);
+   SomeObject.SetBounds
+     (Top     => 10,
+      Left    => 10,
+      Height  => 100,
+      Width   => 200,
+      Visible => True);
+   -- Use the object
+...
+\end{lstlisting}
+Note that this code does not produce any visible object since the plain GUI.Object\_Type creates no
+canvases
+There is no memory leak since Context deletes all associated objects once freed.
+The same is true for child objects if an object is deleted manually.
+
+\section{Canvases}
+
+A canvas is a container for a picture with a number of simple drawing routines associated with it.
+It can be placed within a GUI object with similar properties as a child GUI object therefore
+it covers an arbitrary child rectangle.
+The content of the canvas is then stretched to fill the rectangle.
+Colours are in BGRA format with each component using 8 bits.
+
+The GUI objects example is again extended to show a simple coloured blue bar,
+\begin{lstlisting}
+...
+   SomeCanvas : GUI.Canvas_ClassAccess;
+...
+   SomeCanvas:=SomeObject.NewCanvas
+     (Height => 1,
+      Width  => 1);
+   SomeCanvas.Clear(16#FF0000FF#);
+   SomeCanvas.SetBounds
+     (Top     => 0,
+      Left    => 0,
+      Height  => 100,
+      Width   => 200,
+      Visible => True);
+...
+\end{lstlisting}
+Again the Canvas will be freed once the Object is destroyed but can be
+freed manually using GUI.FreeCanvas.
+
+\section{Extended GUI type}
+
+Extended GUI type provide interfaces for GUI objects like GUI.Button.Button\_Type.
+Depending on the purpose of the object some of the functionality may be implemented
+with an extended GUI object. In cases of basis objects this may include visual
+output, for example ListBasis\_Type which implements a list component without scrollbar
+to be used as ingredient for themes (see next chapter).
+
+\section{Themes}
+
+A theme is a set of implementations for extended GUI types. It includes objects like
+Buttons and Comboboxes.
+A theme is used like an implementation, using the same infrastructure.
+A theme must be registered globally and can then be found with
+\begin{lstlisting}
+  procedure FindTheme is
+    Theme : GUI.Themes.Implementation_Type;
+  begin
+    Theme:=GUI.Themes.Implementations
+      .FindImplementation("yellowblue");
+  end FindTheme;
+\end{lstlisting}
+\end{document}
