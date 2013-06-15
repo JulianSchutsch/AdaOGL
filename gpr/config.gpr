@@ -35,8 +35,8 @@ abstract project Config is
    mpich2               : Active_Type:="Off";
    wgl                  : Active_Type:="On";
    xlib                 : Active_Type:="Off";
-   freetype             : Active_Type:="On";
-   bitmapfonts          : Active_Type:="Off";
+   freetype             : Active_Type:="Off";
+   bitmapfonts          : Active_Type:="On";
 
 
 end Config;

@@ -44,9 +44,9 @@ with BoundsCalc; use BoundsCalc;
 with Ada.Text_IO; use Ada.Text_IO;
 with GUIDefinitions;
 
-with CubeView;
+with LandscapeView;
 
-procedure Cube is
+procedure Landscape is
 
    GUIImplementation : GUI.Implementation_Type;
    Context           : GUI.Context_ClassAccess;
@@ -95,7 +95,7 @@ procedure Cube is
      (CallBackObject : AnyObject_ClassAccess) is
       pragma Unreferenced(CallBackObject);
 
-      View    : CubeView.CubeView_Access;
+      View    : LandscapeView.LandscapeView_Access;
       Window  : GUI.Window.Window_ClassAccess;
       WBounds : Bounds_Type;
 
@@ -114,7 +114,7 @@ procedure Cube is
       Window.SetButtons((GUI.Window.WindowButtonClose=>true));
       WBounds:=Window.GetClientBounds;
 
-      View:=CubeView.NewCubeView
+      View:=LandscapeView.NewLandscapeView
         (Parent => GUI.Object_CLassAccess(Window),
          Theme  => Theme);
       View.SetBounds
@@ -179,4 +179,4 @@ begin
    YellowBlue.UnRegister;
    GUI.UseImplementations.Unregister;
 
-end Cube;
+end Landscape;

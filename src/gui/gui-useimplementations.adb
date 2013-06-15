@@ -20,20 +20,20 @@
 pragma Ada_2005;
 
 with OpenGL.Context.Win32;
-with Fonts.FreeType;
+with BitmapFonts;
 package body GUI.UseImplementations is
 
    procedure Register is
    begin
       OpenGL.Context.Win32.Register;
-      Fonts.FreeType.Register;
+      BitmapFonts.Register;
    end Register;
    ---------------------------------------------------------------------------
 
    procedure Unregister is
    begin
       OpenGL.Context.Win32.Unregister;
-      Fonts.FreeType.Unregister;
+      BitmapFonts.Unregister;
    end Unregister;
    ---------------------------------------------------------------------------
 

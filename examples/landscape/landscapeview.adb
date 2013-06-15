@@ -3,10 +3,10 @@ with GUI.Button;
 with BoundsCalc; use BoundsCalc;
 with GUIDefinitions;
 
-package body CubeView is
+package body LandscapeView is
 
    procedure UpdateViewCaptions
-     (View : access CubeView_Type) is
+     (View : access LandscapeView_Type) is
       type Vis_Type is delta 0.1 range -10000.0..+10000.0;
    begin
       View.LabelX.SetCaption(U("rotX:"&Vis_Type'Image(Vis_Type(View.RotateX))));
@@ -16,7 +16,7 @@ package body CubeView is
    ---------------------------------------------------------------------------
 
    procedure RenderCustom
-     (Object : access CubeView_Type) is
+     (Object : access LandscapeView_Type) is
 
       AbsBounds   : AbsBounds_Type renames Object.AbsBounds;
       Bounds      : Bounds_Type:=Object.GetBounds;
@@ -129,7 +129,7 @@ package body CubeView is
 
    procedure IncreaseRotX
      (CallBackObject: AnyObject_ClassAccess) is
-      View : CubeView_Access:=CubeView_Access(CallBackObject);
+      View : LandscapeView_Access:=LandscapeView_Access(CallBackObject);
    begin
       View.RotateSpeedX:=View.RotateSpeedX+0.1;
    end IncreaseRotX;
@@ -137,7 +137,7 @@ package body CubeView is
 
    procedure DecreaseRotX
      (CallBackObject: AnyObject_ClassAccess) is
-      View : CubeView_Access:=CubeView_Access(CallBackObject);
+      View : LandscapeView_Access:=LandscapeView_Access(CallBackObject);
    begin
       View.RotateSpeedX:=View.RotateSpeedX-0.1;
    end DecreaseRotX;
@@ -145,7 +145,7 @@ package body CubeView is
 
    procedure IncreaseRotY
      (CallBackObject: AnyObject_ClassAccess) is
-      View : CubeView_Access:=CubeView_Access(CallBackObject);
+      View : LandscapeView_Access:=LandscapeView_Access(CallBackObject);
    begin
       View.RotateSpeedY:=View.RotateSpeedY+0.1;
    end IncreaseRotY;
@@ -153,7 +153,7 @@ package body CubeView is
 
    procedure DecreaseRotY
      (CallBackObject: AnyObject_ClassAccess) is
-      View : CubeView_Access:=CubeView_Access(CallBackObject);
+      View : LandscapeView_Access:=LandscapeView_Access(CallBackObject);
    begin
       View.RotateSpeedY:=View.RotateSpeedY-0.1;
    end DecreaseRotY;
@@ -161,7 +161,7 @@ package body CubeView is
 
    procedure IncreaseRotZ
      (CallBackObject: AnyObject_ClassAccess) is
-      View : CubeView_Access:=CubeView_Access(CallBackObject);
+      View : LandscapeView_Access:=LandscapeView_Access(CallBackObject);
    begin
       View.RotateSpeedZ:=View.RotateSpeedZ+0.1;
    end IncreaseRotZ;
@@ -169,22 +169,22 @@ package body CubeView is
 
    procedure DecreaseRotZ
      (CallBackObject: AnyObject_ClassAccess) is
-      View : CubeView_Access:=CubeView_Access(CallBackObject);
+      View : LandscapeView_Access:=LandscapeView_Access(CallBackObject);
    begin
       View.RotateSpeedZ:=View.RotateSpeedZ-0.1;
    end DecreaseRotZ;
    ---------------------------------------------------------------------------
 
-   function NewCubeView
+   function NewLandscapeView
      (Parent : GUI.Object_ClassAccess;
       Theme  : GUI.Themes.Implementation_Type)
-      return CubeView_Access is
+      return LandscapeView_Access is
 
-      View    : CubeView_Access;
+      View    : LandscapeView_Access;
       Button  : GUI.Button.Button_ClassAccess;
 
    begin
-      View        := new CubeView_Type;
+      View        := new LandscapeView_Type;
       View.Render := GUIDefinitions.RenderCustom;
       View.Initialize(Parent => Parent);
 
@@ -323,8 +323,8 @@ package body CubeView is
          Right => True,
          Bottom => False);
 
-      return CubeView_Access(View);
+      return LandscapeView_Access(View);
 
-   end NewCubeView;
+   end NewLandscapeView;
 
-end CubeView;
+end LandscapeView;
