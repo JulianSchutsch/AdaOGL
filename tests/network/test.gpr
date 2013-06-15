@@ -1,0 +1,31 @@
+with "../../gpr/common";
+with "../../gpr/network";
+
+project Test is
+
+   for Exec_Dir use Common.ExecDirectory;
+   for Main use ("manycon.adb");
+   for Languages use Common.Languagesused;
+
+   package Compiler is
+      for Default_Switches ("ada") use
+         Common.CompilerSwitches
+	&Network.CompilerSwitches;
+   end Compiler;
+
+   package Binder is
+      for Default_Switches ("ada") use
+         Common.BinderSwitches
+	&Network.BinderSwitches;
+   end Binder;
+
+   package Linker is
+      for Default_Switches ("ada") use
+         Common.LinkerSwitches
+        &Network.LinkerSwitches;
+   end Linker;
+
+   for Object_Dir use Common.ObjectDirectory;
+   for Source_Dirs use Common.SourceDirectories & ".";
+
+end Test;

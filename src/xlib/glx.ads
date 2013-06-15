@@ -24,8 +24,13 @@
 with Xlib; use Xlib;
 with OpenGL; use OpenGL;
 with Interfaces.C;
+with Interfaces.C.Strings;
+with System;
+with Ada.Unchecked_Conversion;
 
 package glX is
+
+   FailedglXLoading : Exception;
 
    GLX_RGBA         : constant:=4;
    GLX_RED_SIZE     : constant:=8;
@@ -34,17 +39,61 @@ package glX is
    GLX_DOUBLEBUFFER : constant:=5;
    GLX_DEPTH_SIZE   : constant:=12;
    GLX_NONE         : constant:=101;
+   GLX_DRAWABLE_TYPE : constant:=16#8010#;
+   GLX_WINDOW_BIT    : constant:=1;
+   GLX_RENDER_TYPE   : constant:=16#8011#;
+   GLX_RGBA_BIT      : constant:=1;
+   GLX_X_RENDERABLE  : constant:=16#8012#;
+   GLX_X_VISUAL_TYPE : constant:=22;
+   GLX_TRUE_COLOR    : constant:=16#8002#;
+   GLX_STENCIL_SIZE  : constant:=13;
 
-   type GLXContext_Type is
-      record
-         null;
-      end record;
-   type GLXContext_Access is access GLXContext_Type;
+   GLX_CONTEXT_MAJOR_VERSION_ARB : constant:=16#2091#;
+   GLX_CONTEXT_MINOR_VERSION_ARB : constant:=16#2092#;
+   GLX_CONTEXT_FLAGS_ARB         : constant:=16#2094#;
+   GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB : constant:=2;
+
+   type GLXContext_Type is null record;
+   type GLXContext_Access is access all GLXContext_Type;
 
    type GLXDrawable_Type is new Xlib.XID_Type;
 
-   -- PORTABILITY : Boolean may not be defined as expected, working
+   type GLXFBConfigRec_Type is null record;
+   type GLXFBConfigRec_Access is access all GLXFBConfigRec_Type;
+   type GLXFBConfig_Type is array(0..Natural'Last) of GLXFBConfigRec_Access;
+   pragma Convention(C,GLXFBConfig_Type);
+   type GLXFBConfig_Access is access all GLXFBConfig_Type;
+
+   -- TODO PORTABILITY : Boolean may not be defined as expected, working
    --               on Debian Sqeeze so far
+
+   type glXGetProcAddressARB_Access is
+     access function
+       (procName : access Interfaces.C.char)
+        return System.Address;
+   pragma Convention(C,glXGetProcAddressARB_Access);
+
+   glXGetProcAddressARB : glXGetProcAddressARB_Access:=null;
+
+   function GetProcAddressARB
+     (Name : String)
+      return System.Address;
+
+   function GetProcAddress
+     (Name : String)
+      return System.Address;
+
+   type glXCreateContextAttribsARB_Access is
+     access function
+       (dpy           : Display_Access;
+        config        : GLXFBConfigRec_Access;
+        share_context : GLXContext_Access;
+        direct        : Interfaces.C.int;
+        attrib_list   : access Interfaces.C.int)
+        return GLXContext_Access;
+   pragma Convention(C,glXCreateContextAttribsARB_Access);
+
+   function Conv is new Ada.Unchecked_Conversion(System.Address,glXCreateContextAttribsARB_Access);
 
    function glXQueryVersion
      (dpy   : Display_Access;
@@ -52,6 +101,17 @@ package glX is
       minor : GLint_Access)
       return Interfaces.C.int; -- FOR BOOLEAN
    pragma Import(C,glXQueryVersion,"glXQueryVersion");
+
+   function glXQueryExtensionsString
+     (dpy    : Display_Access;
+      screen : Interfaces.C.int)
+      return Interfaces.C.Strings.chars_ptr;
+   pragma Import(C,glXQueryExtensionsString,"glXQueryExtensionsString");
+
+   function QueryExtensionsString
+     (Display : Display_Access;
+      Screen  : Interfaces.C.int)
+      return String;
 
    function glXChooseVisual
      (dpy        : Display_Access;
@@ -69,9 +129,9 @@ package glX is
    pragma Import(C,glXCreateContext,"glXCreateContext");
 
    function glXMakeCurrent
-     (dpy : Display_Access;
+     (dpy      : Display_Access;
       drawable : GLXDrawable_Type;
-      context : GLXContext_Access)
+      context  : GLXContext_Access)
       return Interfaces.C.int; -- FOR BOOLEAN
    pragma Import(C,glXMakeCurrent,"glXMakeCurrent");
 
@@ -84,5 +144,43 @@ package glX is
      (dpy      : Display_Access;
       drawable : GLXDrawable_Type);
    pragma Import(C,glXSwapBuffers,"glXSwapBuffers");
+
+   function glXGetProcAddress
+     (procName : access Interfaces.C.char)
+      return System.Address;
+   pragma Import(C,glXGetProcAddress,"glXGetProcAddressARB");
+
+   function glXChooseFBConfig
+     (dpy         : Display_Access;
+      screen      : Interfaces.C.int;
+      attrib_list : access Interfaces.C.int;
+      nelements   : access Interfaces.C.int)
+      return GLXFBConfig_Access;
+   pragma Import(C,glXChooseFBConfig,"glXChooseFBConfig");
+
+   function glXGetVisualFromFBConfig
+     (dpy : Display_Access;
+      config : GLXFBConfigRec_Access)
+      return XVisualInfo_Access;
+   pragma Import(C,glXGetVisualFromFBConfig,"glXGetVisualFromFBConfig");
+
+   function glXQueryExtension
+     (dpy : Display_Access;
+      errorBase : access Interfaces.C.int;
+      eventBase : access Interfaces.C.int)
+      return Interfaces.C.int;
+   pragma Import(C,glXQueryExtension,"glXQueryExtension");
+
+   function glXQueryExtensionString
+     (dpy    : Display_Access;
+      screen : Interfaces.C.int)
+      return Interfaces.C.Strings.chars_ptr;
+   pragma Import(C,glXQueryExtensionString,"glXQueryExtensionString");
+
+   procedure LoadGLX
+     (Display : Display_Access);
+
+   VersionMajor : aliased GLint_Type:=0;
+   VersionMinor : aliased GLint_Type:=0;
 
 end glX;

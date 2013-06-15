@@ -76,9 +76,13 @@ abstract project Common is
            (Dir & "../src/network/win32",
             Dir & "../src/basics/win32");
 
-         LinkerSwitches:=LinkerSwitches &
-           ("-L.",
-            "-lfreetype6");
+         LinkerSwitches:=LinkerSwitches & ("-L.");
+
+         case Config.freetype is
+            when "On" =>
+               LinkerSwitches:=LinkerSwitches & ("-lfreetype6");
+            when "Off" =>
+         end case;
 
       when "Linux" =>
 
@@ -86,8 +90,11 @@ abstract project Common is
            (Dir & "../src/network/linux",
             Dir & "../src/basics/linux");
 
-         LinkerSwitches:=LinkerSwitches &
-           ("-lfreetype");
+         case Config.freetype is
+            when "On" =>
+               LinkerSwitches:=LinkerSwitches & ("-lfreetype6");
+            when "Off" =>
+         end case;
 
          LanguagesUsed:=LanguagesUsed &
            ("C");

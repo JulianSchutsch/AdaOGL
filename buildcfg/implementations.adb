@@ -186,12 +186,12 @@ package body Implementations is
             Default(ImplementationBSDSockets) := True;
             Default(ImplementationXlib)       := True;
             Default(ImplementationMPICH2)     := True;
-            Default(ImplementationFreeType)   := True;
+            -- Default(ImplementationFreeType)   := True;
          when PlattformWindowsNT =>
             Default(ImplementationBSDSockets) := True;
             Default(ImplementationWGL)        := True;
             Default(ImplementationMPICH2)     := True;
-            Default(ImplementationFreeType)   := True;
+            -- Default(ImplementationFreeType)   := True;
       end case;
       Default(ImplementationBitmapFonts) := True;
 

@@ -44,6 +44,12 @@ package body BitmapFonts is
       Color  : Standard.Canvas.Color_Type);
 
    overriding
+   function CharacterAdvance
+     (Font : access Font_Type;
+      Char : Wide_Wide_Character)
+      return Float;
+
+   overriding
    function Height
      (Font : access Font_Type)
       return Integer;
@@ -167,7 +173,21 @@ package body BitmapFonts is
          return 0.0;
       end if;
    end CharacterWidth;
-   ---------------------------------------------------------------------------
+      ---------------------------------------------------------------------------
+
+   function CharacterAdvance
+     (Font : access Font_Type;
+      Char : Wide_Wide_Character)
+      return Float is
+      CharPos : constant Integer:=Wide_Wide_Character'Pos(Char)+Font.Chars'First;
+   begin
+      if CharPos in Font.Chars'Range then
+         return float(Font.Chars(CharPos).Image'Length(2));
+      else
+         return 0.0;
+      end if;
+   end CharacterAdvance;
+
 
    function Kerning
      (Font       : access Font_Type;

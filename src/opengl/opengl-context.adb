@@ -23,8 +23,7 @@ with System;
 with Canvas;
 with Boundscalc; use Boundscalc;
 with GUIDefinitions; use GUIDefinitions;
---Swith Ada.Text_IO; use Ada.Text_IO;
---with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
 package body OpenGL.Context is
 

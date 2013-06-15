@@ -1,0 +1,35 @@
+with "../../gpr/common";
+with "../../gpr/distributedsystems";
+with "../../gpr/network";
+
+project Test is
+
+   for Exec_Dir use Common.ExecDirectory;
+   for Main use ("spawn.adb","pi.adb","ring.adb","transfer");
+   for Languages use Common.Languagesused;
+
+   package Compiler is
+      for Default_Switches ("ada") use
+         Common.CompilerSwitches
+        &DistributedSystems.CompilerSwitches
+	&Network.CompilerSwitches;
+   end Compiler;
+
+   package Binder is
+      for Default_Switches ("ada") use
+         Common.BinderSwitches
+        &DistributedSystems.BinderSwitches
+	&Network.BinderSwitches;
+   end Binder;
+
+   package Linker is
+      for Default_Switches ("ada") use
+         Common.LinkerSwitches
+        &DistributedSystems.LinkerSwitches
+        &Network.LinkerSwitches;
+   end Linker;
+
+   for Object_Dir use Common.ObjectDirectory;
+   for Source_Dirs use Common.SourceDirectories & ".";
+
+end Test;

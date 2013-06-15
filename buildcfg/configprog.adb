@@ -432,7 +432,7 @@ begin
          Put_Line(" "&To_String(Implementations.Implementations(i).Name));
       end loop;
       New_Line;
-      Put_Line("Specifying ""all"" selects all compatible implementations for a plattform.");
+      Put_Line("Specifying ""default"" selects all compatible implementations for a plattform.");
       Put_Line("Implementations are checked for compatibility with the current plattform.");
       Put_Line("To exclude an implementation, prefix it with '!' .");
       Put_Line("All parameters are processed in the order they are given.");
