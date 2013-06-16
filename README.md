@@ -1,4 +1,0 @@
-AdaOGL
-======
-
-Ada OpenGL Framework

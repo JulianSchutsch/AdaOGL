@@ -1,0 +1,24 @@
+Ada OpenGL Framework
+
+Provides a few basic GUI components and an easy way to create an OpenGL window.
+Please look at the examples in /examples.
+
+Requirements on Debian:
+
+ Required : libx11dev (xlib.h)
+            libgl1-mesa-dev (GL.so)
+            gnat-4.6 or higher
+            gprbuild
+
+Compilation:
+
+ Run the make file in the root folder. It will select a default configuration,
+ which you can change by running buildcfg\configprog.
+ This may be a dependency on freetype or mpich2.
+
+Examples:
+
+ All examples require the compilation step described above.
+ Each example has a .gpr file. Run:
+ 
+  gprbuild example.gpr
