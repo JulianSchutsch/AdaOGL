@@ -42,6 +42,48 @@ package body Bytes is
    end "+";
    ---------------------------------------------------------------------------
 
+   function "+"
+     (Left : Cardinal32_Access;
+      Right : Integer)
+      return Cardinal32_Access is
+
+      use type Interfaces.C.size_t;
+
+      function CAccessToSizeT is new Ada.Unchecked_Conversion
+        (Source => Cardinal32_Access,
+         Target => Interfaces.C.size_t);
+
+      function SizeTToCAccess is new Ada.Unchecked_Conversion
+        (Source => Interfaces.C.size_t,
+         Target => Cardinal32_Access);
+
+   begin
+      return SizeTToCAccess
+        (CAccessToSizeT(Left)+Interfaces.C.size_t(Right)*4);
+   end "+";
+   ---------------------------------------------------------------------------
+
+   function "+"
+     (Left : Float_Access;
+      Right : Integer)
+      return Float_Access is
+
+      use type Interfaces.C.size_t;
+
+      function CAccessToSizeT is new Ada.Unchecked_Conversion
+        (Source => Float_Access,
+         Target => Interfaces.C.size_t);
+
+      function SizeTToCAccess is new Ada.Unchecked_Conversion
+        (Source => Interfaces.C.size_t,
+         Target => Float_Access);
+
+   begin
+      return SizeTToCAccess
+        (CAccessToSizeT(Left)+Interfaces.C.size_t(Right)*Float'Size/8);
+   end "+";
+   ---------------------------------------------------------------------------
+
    function "-"
      (Left  : Byte_Access;
       Right : Integer)

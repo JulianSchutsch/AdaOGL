@@ -106,10 +106,10 @@ procedure Landscape is
       Window.OnCloseWindow:=CloseWindowClick'Unrestricted_Access;
       Window.SetCaption(U("Cube"));
       Window.SetBounds
-        (Top     => 20,
-         Left    => 20,
-         Height  => 200,
-         Width   => 320,
+        (Top     => 10,
+         Left    => 10,
+         Height  => 600,
+         Width   => 800,
          Visible => True);
       Window.SetButtons((GUI.Window.WindowButtonClose=>true));
       WBounds:=Window.GetClientBounds;

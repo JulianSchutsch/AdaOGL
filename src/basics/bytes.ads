@@ -30,6 +30,7 @@ with Endianess;
 with Interfaces.C;
 with Basics; use Basics;
 with Ada.Streams;
+with Types;
 
 package Bytes is
 
@@ -48,10 +49,20 @@ package Bytes is
    pragma Convention(C,Byte_Array);
 
    type LittleEndianCardinal32_Access is access all Endianess.LittleEndianCardinal32;
+   type Cardinal32_Access is access all Types.Cardinal32;
+   type Float_Access is access all Float;
 
    function AddressToIntAccess is new Ada.Unchecked_Conversion
      (Source => System.Address,
       Target => Int_Access);
+
+   function AddressToCardinal32Access is new Ada.Unchecked_Conversion
+     (Source => System.Address,
+      Target => Cardinal32_Access);
+
+   function AddressToFloatAccess is new Ada.Unchecked_Conversion
+     (Source => System.Address,
+      Target => Float_Access);
 
    function AddressToByteAccess is new Ada.Unchecked_Conversion
      (Source => System.Address,
@@ -74,5 +85,15 @@ package Bytes is
      (Left  : Byte_Access;
       Right : Integer)
       return Byte_Access;
+
+   function "+"
+     (Left : Cardinal32_Access;
+      Right : Integer)
+      return Cardinal32_Access;
+
+   function "+"
+     (Left : Float_Access;
+      Right : Integer)
+      return Float_Access;
 
 end Bytes;

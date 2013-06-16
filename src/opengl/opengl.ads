@@ -87,6 +87,7 @@ package OpenGL is
 
    GL_MODELVIEW  : constant GLenum_Type:=16#1700#;
    GL_PROJECTION : constant GLenum_Type:=16#1701#;
+   GL_PROJECTION_MATRIX : constant GLenum_Type:=2983;
 
    GL_SCISSOR_TEST : constant GLenum_Type:=16#C11#;
    GL_DEPTH_TEST   : constant GLenum_Type:=16#B71#;
@@ -144,10 +145,12 @@ package OpenGL is
    GL_RGBA8I   : constant GLenum_Type:=16#8D8E#;
    GL_RGBA32F  : constant GLenum_Type:=16#8814#;
    GL_RGBA32UI : constant GLenum_Type:=16#8D70#;
+   GL_LUMINANCE32F : constant GLenum_Type:=16#8818#;
 
    GL_DYNAMIC_DRAW : constant GLenum_Type:=16#88E8#;
 
    GL_MAP_WRITE_BIT : constant GLbitfield_Type:=2;
+   GL_WRITE_ONLY : constant GLenum_Type:=35001;
 
    GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS : constant GLenum_Type:=16#8B4D#;
    GL_ACTIVE_TEXTURE : constant GLenum_Type:=16#84E0#;
@@ -290,6 +293,12 @@ package OpenGL is
         params : access GLint_Type);
    pragma Convention(StdCall,glGetIntegerv_Access);
 
+   type glGetFloatv_Access is
+     access procedure
+       (pname : GLenum_Type;
+        params : access GLFloat_Type);
+   pragma Convention(StdCall,glGetFloatv_Access);
+
    procedure PreGetIntegerv
      (pname : GLenum_Type;
       params : access GLint_Type;
@@ -401,6 +410,7 @@ package OpenGL is
    glDrawArrays          : glDrawArrays_Access:=null;
    glFinish              : glFinish_Access:=null;
    glGetIntegerv         : glGetIntegerv_Access:=null;
+   glGetFloatv           : glGetFloatv_Access:=null;
    glGetError            : glGetError_Access:=null;
    glGenTextures         : glGenTextures_Access:=null;
    glBindTexture         : glBindTexture_Access:=null;
@@ -447,6 +457,12 @@ package OpenGL is
         buffer         : GLuint_Type);
    pragma Convention(StdCall,glTexBuffer_Access);
 
+   type glMapBuffer_Access is
+     access function
+       (target  : GLenum_Type;
+        aaccess : GLenum_Type)
+        return System.Address;
+
    type glMapBufferRange_Access is
      access function
        (target  : GLenum_Type;
@@ -470,6 +486,7 @@ package OpenGL is
    glBindBuffer     : glBindBuffer_Access:=null;
    glBufferData     : glBufferData_Access:=null;
    glTexBuffer      : glTexBuffer_Access:=null;
+   glMapBuffer      : glMapBuffer_Access:=null;
    glMapBufferRange : glMapBufferRange_Access:=null;
    glUnmapBuffer    : glUnmapBuffer_Access:=null;
 

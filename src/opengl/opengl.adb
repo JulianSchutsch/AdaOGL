@@ -30,6 +30,7 @@ package body OpenGL is
    function Conv is new Ada.Unchecked_Conversion(System.Address,glClearColor_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glGetString_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glGetIntegerv_Access);
+   function Conv is new Ada.Unchecked_Conversion(System.Address,glGetFloatv_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glClear_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glViewport_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glDrawArrays_Access);
@@ -51,6 +52,7 @@ package body OpenGL is
    function Conv is new Ada.Unchecked_Conversion(System.Address,glBindBuffer_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glBufferData_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glTexBuffer_Access);
+   function Conv is new Ada.Unchecked_Conversion(System.Address,glMapBuffer_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glMapBufferRange_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glUnmapBuffer_Access);
    -- Vertex Attributes
@@ -376,6 +378,7 @@ package body OpenGL is
       glViewport       := Conv(GetProc("glViewport"));
       glFinish         := Conv(GetProc("glFinish"));
       glGetIntegerv    := Conv(GetProc("glGetIntegerv"));
+      glGetFloatv      := Conv(GetProc("glGetFloatv"));
       glTexParameteri  := Conv(GetProc("glTexParameteri"));
       glDrawArrays     := Conv(GetProc("glDrawArrays"));
       glGenTextures    := Conv(GetProc("glGenTextures"));
@@ -434,6 +437,7 @@ package body OpenGL is
         IsExtensionSupported("GL_ARB_vertex_array_object") then
          glBindVertexArray := Conv(GetProc("glBindVertexArray"));
          glGenVertexArrays := Conv(GetProc("glGenVertexArrays"));
+         glMapBuffer       := Conv(GetProc("glMapBuffer"));
          glMapBufferRange  := Conv(GetProc("glMapBufferRange"));
          glUnmapBuffer     := Conv(GetProc("glUnmapBuffer"));
       end if;
