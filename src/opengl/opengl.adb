@@ -58,6 +58,7 @@ package body OpenGL is
    -- Vertex Attributes
    function Conv is new Ada.Unchecked_Conversion(System.Address,glVertexAttribPointer_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glEnableVertexAttribArray_Access);
+   function Conv is new Ada.Unchecked_Conversion(System.Address,glDisableVertexAttribArray_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glGenVertexArrays_Access);
    function Conv is new Ada.Unchecked_Conversion(System.Address,glBindVertexArray_Access);
    -- GLSL
@@ -428,6 +429,7 @@ package body OpenGL is
          SupportVertexAttributes:=True;
          glVertexAttribPointer     := Conv(GetProc("glVertexAttribPointer"));
          glEnableVertexAttribArray := Conv(GetProc("glEnableVertexAttribArray"));
+         glDisableVertexAttribArray := Conv(GetProc("glDisableVertexAttribArray"));
          glBindAttribLocation      := Conv(GetProc("glBindAttribLocation"));
       end if;
 
@@ -518,12 +520,14 @@ package body OpenGL is
 
          glActiveTexture := null;
 
-         glVertexAttribPointer     := null;
-         glEnableVertexAttribArray := null;
-         glBindAttribLocation      := null;
+         glVertexAttribPointer      := null;
+         glEnableVertexAttribArray  := null;
+         glDisableVertexAttribArray := null;
+         glBindAttribLocation       := null;
 
          glBindVertexArray := null;
          glGenVertexArrays := null;
+         glMapBuffer       := null;
          glMapBufferRange  := null;
          glUnmapBuffer     := null;
 

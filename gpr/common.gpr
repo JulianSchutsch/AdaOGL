@@ -41,9 +41,7 @@ abstract project Common is
       "-g",     -- Generate Debugging information
       "-gnatf", -- Full error messages
       "-O3",     -- Full optimisation
-      "-fno-strict-aliasing",
-      "-gnatp",
-      "-gnatE"
+      "-fno-strict-aliasing"
      );
 
    LinkerSwitches:=("-lgmem","-gnatE");

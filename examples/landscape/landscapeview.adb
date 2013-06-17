@@ -1,10 +1,5 @@
-with Basics; use Basics;
-with GUI.Button;
 with BoundsCalc; use BoundsCalc;
 with GUIDefinitions;
-with VectorMath;
-with OpenGL.BufferTexture;
-with OpenGL.Program;
 with Ada.Numerics.Elementary_Functions;
 with Bytes; use Bytes;
 with Types; use Types;
@@ -16,7 +11,10 @@ package body LandscapeView is
 
    LineFeed : constant Character := Character'Val(10);
 
-   TerrainShader : String :=
+   DetailLevel  : constant Integer:=32;
+   DetailVertexCount : constant Integer:=DetailLevel*(DetailLevel*2+2);
+
+   TerrainShader : constant String :=
        "#version 330"&LineFeed&
        "#extension GL_EXT_gpu_shader4 : enable"&LineFeed&
        "uniform mat4 PerspectiveMatrix;"&LineFeed&
@@ -63,7 +61,7 @@ package body LandscapeView is
        " vertexColor = vec4(fract(float(ViewLeft+deltaX)/2.0),intensity*0.5+0.2,fract(float(ViewTop+deltaY)/2.0),1);"&LineFeed&
        "}"&LineFeed;
 
-   FragmentShader : String :=
+   FragmentShader : constant String :=
        "#version 330"&LineFeed&
        "smooth in vec4 vertexColor;"&LineFeed&
        "out vec4 outputColor;"&LineFeed&
@@ -72,10 +70,10 @@ package body LandscapeView is
        " outputColor=vertexColor;"&LineFeed&
        "}"&LineFeed;
 
-   BicubicTransformationMatrixT : FourDMatrix_Type:=
-     ((1.0,0.0,0.0,0.0),(0.0,0.0,1.0,0.0),(-3.0,3.0,-2.0,-1.0),(2.0,-2.0,1.0,1.0));
-   BicubicTransformationMatrix : FourDMatrix_Type:=
-     ((1.0,0.0,-3.0,2.0),(0.0,0.0,3.0,-2.0),(0.0,1.0,-2.0,1.0),(0.0,0.0,-1.0,1.0));
+--   BicubicTransformationMatrixT : FourDMatrix_Type:=
+--     ((1.0,0.0,0.0,0.0),(0.0,0.0,1.0,0.0),(-3.0,3.0,-2.0,-1.0),(2.0,-2.0,1.0,1.0));
+--   BicubicTransformationMatrix : FourDMatrix_Type:=
+--     ((1.0,0.0,-3.0,2.0),(0.0,0.0,3.0,-2.0),(0.0,1.0,-2.0,1.0),(0.0,0.0,-1.0,1.0));
 
    procedure CalcPerspective
      (View : access LandscapeView_Type) is
@@ -102,7 +100,7 @@ package body LandscapeView is
       View.AspectRatio := GLFloat_Type(Bounds.Width)/GLFLoat_Type(Bounds.Height);
       Put_Line("AspectRatio"&GLFloat_Type'Image(View.AspectRatio));
 
-      View.InvModelRotation := RotateZHomogenMAtrix(-View.RotateZ)*RotateXHomogenMatrix(View.RotateX);
+      View.InvModelRotation := RotateZHomogenMatrix(-View.RotateZ)*RotateXHomogenMatrix(-View.RotateX);
       DebugHomogenMatrix(View.InvModelRotation);
 
       View.InverseModelMatrix := TranslateHomogenMatrix(-View.Translate(0), -View.Translate(1), -View.Translate(2))
@@ -118,18 +116,25 @@ package body LandscapeView is
       Put_Line("InvLength"&GLFLoat_Type'Image(InvLength));
 
       PosSpot := View.InverseModelMatrix * AssignHomogenVector(0.0,0.0,0.0);
-      DebugHomogenVector(PosSpot);
 
       DirTopLeft := View.InvModelRotation*(InvLength*AssignHomogenVector(-View.AspectRatio,1.0,-View.NearDistance));
       DirTopRight := View.InvModelRotation*(InvLength*AssignHomogenVector(View.AspectRatio,1.0,-View.NearDistance));
       DirBottomLeft := View.InvModelRotation*(InvLength*AssignHomogenVector(-View.AspectRatio,-1.0,-View.NearDistance));
       DirBottomRight := View.InvModelRotation*(InvLength*AssignHomogenVector(View.AspectRatio,-1.0,-View.NearDistance));
       DebugHomogenVector(DirTopLeft);
+      DebugHomogenVector(DirTopRight);
+      DebugHomogenVector(DirBottomLeft);
+      DebugHomogenVector(DirBottomRight);
+      Put_Line("---");
 
       PosTopLeft := AssignHomogenVector(PosSpot(0)-DirTopLeft(0)*PosSpot(2)/DirTopLeft(2), PosSpot(1)-DirTopLeft(1)*PosSpot(2)/DirTopLeft(2),0.0);
       PosTopRight := AssignHomogenVector(PosSpot(0)-DirTopRight(0)*PosSpot(2)/DirTopRight(2), PosSpot(1)-DirTopRight(1)*PosSpot(2)/DirTopRight(2),0.0);
       PosBottomLeft := AssignHomogenVector(PosSpot(0)-DirBottomLeft(0)*PosSpot(2)/DirBottomLeft(2),PosSpot(1)-DirBottomLeft(1)*PosSpot(2)/DirBottomLeft(2),0.0);
       PosBottomRight := AssignHomogenVector(PosSpot(0)-DirBottomRight(0)*PosSpot(2)/DirBottomRight(2),PosSpot(1)-DirBottomRight(1)*PosSpot(2)/DirBottomRight(2),0.0);
+      DebugHomogenVector(PosTopLeft);
+      DebugHomogenVector(PosTopRight);
+      DebugHomogenVector(PosBottomLeft);
+      DebugHomogenVector(PosBottomRight);
 
       CalculateMinimalBoundingBox((PosSpot, PosTopLeft, PosTopRight, PosBottomLeft, PosBottomRight),BoundingBox);
 
@@ -140,7 +145,7 @@ package body LandscapeView is
 
       Put_Line("MIN:"&Integer'Image(View.BoundMinX));
       Put_Line("MAX:"&Integer'Image(View.BoundMaxX));
-      Put_Line("MIN:"&Integer'Image(View.BoundMinY));
+      Put_Line("MIN:"&Integer'Image(View.BoundMinY)&":"&Float'Image(BoundingBox.MinY));
       Put_Line("MAX:"&Integer'Image(View.BoundMaxY));
 
    end CalcPerspective;
@@ -148,7 +153,6 @@ package body LandscapeView is
 
    procedure UpdateViewCaptions
      (View : access LandscapeView_Type) is
-      type Vis_Type is delta 0.1 range -10000.0..+10000.0;
    begin
       null;
    end UpdateViewCaptions;
@@ -165,9 +169,9 @@ package body LandscapeView is
      (View : access LandscapeView_Type) is
 
       AbsBounds   : AbsBounds_Type renames View.AbsBounds;
-      Bounds      : Bounds_Type := View.GetBounds;
+      Bounds      : constant Bounds_Type := View.GetBounds;
       AspectRatio : GLDouble_Type;
-      InfoBuffer : Cardinal32_Access;
+      InfoBuffer : Float_Access;
 
    begin
       AssertError("RenderCustom.Start");
@@ -175,11 +179,15 @@ package body LandscapeView is
          return;
       end if;
 
-      InfoBuffer:=AddressToCardinal32Access(OpenGL.BufferTexture.MapWriteOnly(View.ViewInformationBuffer));
-      InfoBuffer.all:=Cardinal32(View.TerrainWidth);
-      InfoBuffer.all:=Cardinal32(View.BoundMinY);
-      InfoBuffer.all:=Cardinal32(View.BoundMinX);
-      InfoBuffer.all:=Cardinal32(View.BoundMaxX-View.BoundMinX+1);
+      InfoBuffer:=AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(View.ViewInformationBuffer));
+      InfoBuffer.all:=GLFLoat_Type(View.TerrainWidth);
+      InfoBuffer:=InfoBuffer+1;
+      InfoBuffer.all:=GLFLoat_Type(View.BoundMinY);
+      InfoBuffer:=InfoBuffer+1;
+      InfoBuffer.all:=GLFloat_Type(View.BoundMinX);
+      InfoBuffer:=InfoBuffer+1;
+      InfoBuffer.all:=GLFLoat_Type(View.BoundMaxX-View.BoundMinX+1);
+      InfoBuffer:=InfoBuffer+1;
       OpenGL.BufferTexture.Unmap(View.ViewInformationBuffer);
 
       glViewPort(GLint_Type(AbsBounds.AbsLeft - AbsBounds.AbsSubLeft),
@@ -213,13 +221,13 @@ package body LandscapeView is
       glRotatef(View.RotateX, 1.0, 0.0, 0.0);
       glRotatef(View.RotateZ, 0.0, 0.0, 1.0);
       glTranslatef(View.Translate(0), View.Translate(1), View.Translate(2));
-      glBegin(GL_QUADS);
-      glColor4f(0.0,0.0,1.0,1.0);
-      glVertex3f(GLFLoat_Type(View.BoundMinX),GLFLoat_Type(View.BoundMinY),0.1);
-      glVertex3f(GLFloat_Type(View.BoundMinX),GLFloat_Type(View.BoundMaxY+1),0.1);
-      glVertex3f(GLFloat_Type(View.BoundMaxX),GLFloat_Type(View.BoundMaxY+1),0.1);
-      glVertex3f(GLFLoat_Type(View.BoundMaxX),GLFLoat_Type(View.BoundMinY),0.1);
-      glEnd;
+--      glBegin(GL_QUADS);
+--      glColor4f(0.0,0.0,1.0,1.0);
+--      glVertex3f(GLFLoat_Type(View.BoundMinX),GLFLoat_Type(View.BoundMinY),0.1);
+--      glVertex3f(GLFloat_Type(View.BoundMinX),GLFloat_Type(View.BoundMaxY+1),0.1);
+--      glVertex3f(GLFloat_Type(View.BoundMaxX),GLFloat_Type(View.BoundMaxY+1),0.1);
+--      glVertex3f(GLFLoat_Type(View.BoundMaxX),GLFLoat_Type(View.BoundMinY),0.1);
+--      glEnd;
 
       OpenGL.Program.UseProgram(View.TerrainShader);
 
@@ -230,8 +238,21 @@ package body LandscapeView is
          AssertError("get Projection");
          usematrix:=Transpose(View.ModelMatrix)*usematrix;
          glUniformMatrix4fv(View.TerrainShaderUniformPerspectiveMatrix,1, GL_FALSE, usematrix(0,0)'Access);
+         glBindBuffer(GL_ARRAY_BUFFER, View.TerrainVBO);
+         glEnableVertexAttribArray(0);
+         glVertexAttribPointer(0,4,GL_FLOAT,GL_FALSE,0,System.Null_Address);
+         OpenGL.BufferTexture.Activate(View.ViewInformationBuffer,1);
+         OpenGL.BufferTexture.Activate(View.TerrainGeometryBuffer,2);
+         OpenGL.BufferTexture.Activate(View.TerrainSelectionBuffer,3);
+         glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, GLint_Type(DetailVertexCount),
+                               GLint_Type((View.BoundMaxY-View.BoundMinY+1)*(View.BoundMaxX-View.BoundMinX+1)));
+         glDisableVertexAttribArray(0);
+         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
          AssertError("UniformMatrix4f");
       end;
+
+
 
       glUseProgram(0);
 
@@ -311,45 +332,38 @@ package body LandscapeView is
    procedure CreateTerrainVertexBuffer
      (View : access LandscapeView_Type) is
 
-      Detail : constant Integer:=32;
-      Size : constant Integer:=Detail*(Detail*2+2);
-      Data : Float_Access;
+      Data    : GLFloat_Array(0..DetailVertexCount*4-1);
+      DataPos : Integer:=0;
       CurrentDirection : Integer;
 
       procedure AddVertex(AX, AY : integer) is
       begin
-         Data.all:=GLFLoat_Type(AX)/GLFloat_Type(Detail);
-         Data:=Data+1;
-         Data.all:=GLFloat_Type(AY)/GLFloat_Type(Detail);
-         Data:=Data+1;
-         Data.all:=0.0;
-         Data:=Data+1;
-         Data.all:=1.0;
-         Data:=Data+1;
+         Data(DataPos):=GLFLoat_Type(AX)/GLFloat_Type(DetailLevel);
+         DataPos:=DataPos+1;
+         Data(DataPos):=GLFloat_Type(AY)/GLFloat_Type(DetailLevel);
+         DataPos:=DataPos+1;
+         Data(DataPos):=0.0;
+         DataPos:=DataPos+1;
+         Data(DataPos):=1.0;
+         DataPos:=DataPos+1;
       end AddVertex;
       ------------------------------------------------------------------------
 
    begin
-      glGenBuffers(1,View.TerrainVBO'Access);
-      glBindBuffer(GL_ARRAY_BUFFER, View.TerrainVBO);
---      glEnableClientState(GL_VERTEX_ARRAY);
-      glBufferData(GL_ARRAY_BUFFER, GLsizeiptr_Type(Size*16), System.Null_Address, GL_STATIC_DRAW);
-      Data := AddressToFloatAccess(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY));
-      Put(Data.all'Address);
       Put_Line("FIll VBO");
       CurrentDirection := 1;
-      for CurrentY in 0..Detail-1 loop
+      for CurrentY in 0..DetailLevel-1 loop
          if CurrentDirection = 1 then
             AddVertex(0,CurrentY);
-            for CurrentX in 0..Detail-1 loop
+            for CurrentX in 0..DetailLevel-1 loop
                AddVertex(CurrentX, CurrentY+1);
                AddVertex(CurrentX+1,CurrentY);
             end loop;
             CurrentDirection := -1;
-            AddVertex(Detail,CurrentY+1);
+            AddVertex(DetailLevel,CurrentY+1);
          else
-            AddVertex(Detail,CurrentY);
-            for CurrentX in reverse 0..Detail-1 loop
+            AddVertex(DetailLevel,CurrentY);
+            for CurrentX in reverse 0..DetailLevel-1 loop
                AddVertex(CurrentX+1,CurrentY+1);
                AddVertex(CurrentX,CurrentY);
             end loop;
@@ -357,11 +371,21 @@ package body LandscapeView is
             AddVertex(0,CurrentY+1);
          end if;
       end loop;
-      Put_Line("Done VBO");
 
-      if glUnmapBuffer(GL_ARRAY_BUFFER)=0 then
-         raise OpenGL.BufferTexture.FailedUnMap;
-      end if;
+      Put_Line("Done VBO");
+      glGenBuffers(1,View.TerrainVBO'Access);
+      glBindBuffer(GL_ARRAY_BUFFER, View.TerrainVBO);
+      glBufferData(GL_ARRAY_BUFFER, GLsizeiptr_Type(Data'Size/8), Data(0)'Address, GL_STATIC_DRAW);
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer
+        (index => 0,
+         size  => 4,
+         ttype => GL_FLOAT,
+         normalized => GL_FALSE,
+         stride => 0,
+         pointer => System.Null_Address);
+      glBindVertexArray(0);
+      AssertError("Init VBO");
 
    end CreateTerrainVertexBuffer;
    ---------------------------------------------------------------------------
@@ -370,6 +394,7 @@ package body LandscapeView is
      (Parent : GUI.Object_ClassAccess;
       Theme  : GUI.Themes.Implementation_Type)
       return LandscapeView_Access is
+      pragma Unreferenced(Theme);
 
       View    : LandscapeView_Access;
 
@@ -423,7 +448,7 @@ package body LandscapeView is
 
       CalcPerspective(View);
 
-      return LandscapeView_Access(View);
+      return View;
 
    end NewLandscapeView;
 

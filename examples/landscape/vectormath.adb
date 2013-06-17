@@ -92,13 +92,13 @@ package body VectorMath is
       if AVectors'Length=0 then
          raise ZeroBoundingBox;
       end if;
-      ABox.MinX := AVectors(0)(0);
+      ABox.MinX := AVectors(AVectors'First)(0);
       ABox.MaxX := ABox. MinX;
-      ABox.MinY := AVectors(0)(1);
+      ABox.MinY := AVectors(AVEctors'First)(1);
       ABox.MaxY := ABox.MinY;
-      ABox.MaxZ := AVectors(0)(2);
+      ABox.MaxZ := AVectors(AVectors'First)(2);
       ABox.MaxZ := ABox.MinZ;
-      for i in AVectors'Range loop
+      for i in AVectors'First+1..AVectors'Last loop
          if AVectors(i)(0)<ABox.MinX then
             ABox.MinX:=AVectors(i)(0);
          end if;

@@ -148,6 +148,7 @@ package body OpenGL.Context is
            (func => GL_GREATER,
             ref  => 0.1);
          glEnable(GL_BLEND);
+         glActiveTexture(GL_TEXTURE0);
          glColor4f(1.0,1.0,1.0,1.0);
       end SetupView;
       ------------------------------------------------------------------------

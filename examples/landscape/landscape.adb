@@ -32,17 +32,13 @@ pragma Ada_2012;
 with GUI;
 with GUI.Window;
 with GUI.Button;
-with GUI.Label;
 with GUI.Themes;
 with GUI.UseImplementations;
 with YellowBlue;
 with Config;
 with ProcessLoop;
 with Basics; use Basics;
-with OpenGL; use OpenGL;
 with BoundsCalc; use BoundsCalc;
-with Ada.Text_IO; use Ada.Text_IO;
-with GUIDefinitions;
 
 with LandscapeView;
 
@@ -57,14 +53,6 @@ procedure Landscape is
    Terminated        : Boolean:=False;
    pragma Warnings(Off,Terminated); -- Terminated is never changed
                                     -- from GNATs perspective
-
-   procedure Click
-     (CallBackObject : AnyObject_ClassAccess) is
-      pragma Unreferenced(CallBackObject);
-   begin
-      Terminated:=True;
-   end Click;
-   ---------------------------------------------------------------------------
 
    procedure ContextClose
      (CallBackObject : AnyObject_ClassAccess) is
@@ -84,7 +72,7 @@ procedure Landscape is
    procedure CloseWindowClick
      (CallBackObject : AnyObject_ClassAccess) is
 
-      Window : GUI.Window.Window_ClassAccess:=GUI.Window.Window_ClassAccess(CallBackObject);
+      Window : constant GUI.Window.Window_ClassAccess:=GUI.Window.Window_ClassAccess(CallBackObject);
 
    begin
       Window.AddASync(DeleteWindowClick'Unrestricted_Access);

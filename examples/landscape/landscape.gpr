@@ -1,7 +1,7 @@
 with "../../gpr/common";
 with "../../gpr/gui";
 
-project Cube is
+project Landscape is
 
    for Exec_Dir use Common.ExecDirectory;
    for Main use ("landscape.adb");
@@ -34,4 +34,4 @@ project Cube is
    for Object_Dir use Common.ObjectDirectory;
    for Source_Dirs use Common.SourceDirectories & ".";
 
-end Cube;
+end Landscape;

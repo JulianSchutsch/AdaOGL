@@ -1,5 +1,4 @@
 with GUI;
-with GUI.Label;
 with GUI.Themes;
 with OpenGL; use OpenGL;
 with OpenGL.BufferTexture;

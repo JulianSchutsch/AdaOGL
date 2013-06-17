@@ -516,6 +516,11 @@ package OpenGL is
        (index : GLuint_Type);
    pragma Convention(StdCall,glEnableVertexAttribArray_Access);
 
+   type glDisableVertexAttribArray_Access is
+     access procedure
+       (index : GLuint_Type);
+   pragma Convention(StdCall,glDisableVertexAttribArray_Access);
+
    type glGenVertexArrays_Access is
      access procedure
        (n      : GLsizei_Type;
@@ -527,12 +532,13 @@ package OpenGL is
        (arr : GLuint_Type);
    pragma Convention(StdCall,glBindVertexArray_Access);
 
-   glVertexAttribPointer     : glVertexAttribPointer_Access:=null;
-   glEnableVertexAttribArray : glEnableVertexAttribArray_Access:=null;
-   glBindAttribLocation      : glBindAttribLocation_Access:=null;
-   glGenVertexArrays         : glGenVertexArrays_Access:=null;
-   glBindVertexArray         : glBindVertexArray_Access:=null;
-   glGetStringi              : glGetStringi_Access:=null;
+   glVertexAttribPointer      : glVertexAttribPointer_Access:=null;
+   glEnableVertexAttribArray  : glEnableVertexAttribArray_Access:=null;
+   glDisableVertexAttribArray : glDisableVertexAttribArray_Access:=null;
+   glBindAttribLocation       : glBindAttribLocation_Access:=null;
+   glGenVertexArrays          : glGenVertexArrays_Access:=null;
+   glBindVertexArray          : glBindVertexArray_Access:=null;
+   glGetStringi               : glGetStringi_Access:=null;
 
    SupportVertexAttributes : Boolean:=False;
 
