@@ -453,12 +453,19 @@ package body OpenGL.Context.Win32 is
                  (Source => WPARAM_Type,
                   Target => Wide_Character);
                pragma Warnings(On);
+               Char : Wide_Character;
+               Str  : Unbounded_String;
             begin
                if wParam>=32 then
-                  Put_Line("Win32WM_CHAR:"&WParam_Type'Image(wParam));
+                  Put("Win32WM_CHAR:"&WParam_Type'Image(wParam)&":");
+                  Put(Context.all'Address);
+                  New_Line;
+                  Char:=Convert(wParam);
+                  Str := UCS2ToUTF8(Char);
+                  Put_Line("Call");
                   GUI.ContextCharacterInput
                     (Context => Context_ClassAccess(Context),
-                     Chars   => UCS2ToUTF8(Convert(wParam)));
+                     Chars   => Str);
                end if;
             end;
             return DefWindowProc

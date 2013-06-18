@@ -42,7 +42,8 @@ abstract project Common is
       "-gnatf", -- Full error messages
       "-O3",     -- Full optimisation
       "-fno-strict-aliasing",
-      "-gnatE"
+      "-gnatE",
+      "-gnatp"
      );
 
    LinkerSwitches:=("-lgmem","-gnatE");
