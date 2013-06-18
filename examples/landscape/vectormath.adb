@@ -12,6 +12,18 @@ package body VectorMath is
          Result(3) := 1.0;
       end return;
    end AssignHomogenVector;
+   ---------------------------------------------------------------------------
+
+   function Assign4DVector(AValue1,AValue2,AValue3,AValue4 : GLFLoat_Type) return FourDVector_Type is
+   begin
+      return Result:FourDVector_Type do
+         Result(0):=AValue1;
+         Result(1):=AValue2;
+         Result(2):=AValue3;
+         Result(3):=AValue4;
+      end return;
+   end Assign4DVector;
+   ---------------------------------------------------------------------------
 
    function "*" (ALeftVector,ARightVector:HomogenVector_Type) return GLFloat_Type is
    begin
@@ -166,6 +178,18 @@ package body VectorMath is
    function "*" (AMatrix:HomogenMatrix_Type;AVector:HomogenVector_Type) return HomogenVector_Type is
    begin
       return Result:HomogenVector_Type do
+         for i in 0..3 loop
+            Result(i) := AMatrix(i,0)*AVector(0)
+              +AMatrix(i,1)*AVector(1)
+              +AMatrix(i,2)*AVector(2)
+              +AMAtrix(i,3)*AVector(3);
+         end loop;
+      end return;
+   end;
+
+   function "*" (AMatrix:FourDMatrix_Type;AVector:FourDVector_Type) return FourDVector_Type is
+   begin
+      return Result:FourDVector_Type do
          for i in 0..3 loop
             Result(i) := AMatrix(i,0)*AVector(0)
               +AMatrix(i,1)*AVector(1)

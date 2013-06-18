@@ -40,6 +40,7 @@ package VectorMath is
 
    function "*" (ALeftMatrix,ARightMatrix:HomogenMatrix_Type) return HomogenMatrix_Type;
    function "*" (AMatrix:HomogenMatrix_Type;AVector:HomogenVector_Type) return HomogenVector_Type;
+   function "*" (AMatrix:FourDMatrix_Type;AVector:FourDVector_Type) return FourDVector_Type;
    function "*" (AScalar:GLFloat_Type;AVector:HomogenVector_Type) return HomogenVector_Type;
    function "*" (ALeftVector,ARightVector:HomogenVector_Type) return GLFloat_Type;
    function "-" (ALeftVector,ARightVector:HomogenVector_Type) return HomogenVector_Type;
@@ -52,5 +53,6 @@ package VectorMath is
    procedure DebugHomogenMatrix(AMatrix:HomogenMatrix_Type);
 
    function AssignHomogenVector(AValue1, AValue2, AValue3 : GLFloat_Type) return HomogenVector_Type;
+   function Assign4DVector(AValue1,AValue2,AValue3,AValue4 : GLFLoat_Type) return FourDVector_Type;
 
 end VectorMath;

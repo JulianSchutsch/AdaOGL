@@ -84,26 +84,27 @@ procedure Landscape is
       pragma Unreferenced(CallBackObject);
 
       View    : LandscapeView.LandscapeView_Access;
-      Window  : GUI.Window.Window_ClassAccess;
+--      Window  : GUI.Window.Window_ClassAccess;
       WBounds : Bounds_Type;
 
    begin
 
-      Window:=Theme.NewWindow(Context.BasisArea);
-      Window.CallBackObject:=AnyObject_ClassAccess(Window);
-      Window.OnCloseWindow:=CloseWindowClick'Unrestricted_Access;
-      Window.SetCaption(U("Cube"));
-      Window.SetBounds
-        (Top     => 10,
-         Left    => 10,
-         Height  => 600,
-         Width   => 800,
-         Visible => True);
-      Window.SetButtons((GUI.Window.WindowButtonClose=>true));
-      WBounds:=Window.GetClientBounds;
+--      Window:=Theme.NewWindow(Context.BasisArea);
+--      Window.CallBackObject:=AnyObject_ClassAccess(Window);
+--      Window.OnCloseWindow:=CloseWindowClick'Unrestricted_Access;
+--      Window.SetCaption(U("Landscape"));
+--      Window.SetBounds
+--        (Top     => 10,
+--         Left    => 10,
+--         Height  => 600,
+--         Width   => 800,
+--         Visible => True);
+--      Window.SetButtons((GUI.Window.WindowButtonClose=>true));
+
+      WBounds:=Context.BasisArea.GetClientBounds;
 
       View:=LandscapeView.NewLandscapeView
-        (Parent => GUI.Object_CLassAccess(Window),
+        (Parent => GUI.Object_CLassAccess(Context.BasisArea),
          Theme  => Theme);
       View.SetBounds
         (Top     => 0,

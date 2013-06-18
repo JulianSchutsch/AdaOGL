@@ -6,6 +6,8 @@ with Types; use Types;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with System;
+with Ada.Real_Time;
+with VectorMath; use VectorMath;
 
 package body LandscapeView is
 
@@ -14,7 +16,17 @@ package body LandscapeView is
    DetailLevel  : constant Integer:=16;
    DetailVertexCount : constant Integer:=DetailLevel*(DetailLevel*2+2);
 
-   TerrainShader : constant String :=
+   -- ViewInformation :
+   --  0 : TerrainWidth
+   --  1 : ViewTop
+   --  2 : ViewLeft
+   --  3 : ViewWidth
+   --  4 : Amplitude
+   --  5 : WaveVector
+   --  6 : Frequency
+   --  7 : Time
+
+   TerrainVShader : constant String :=
        "#version 330"&LineFeed&
        "#extension GL_EXT_gpu_shader4 : enable"&LineFeed&
        "uniform mat4 PerspectiveMatrix;"&LineFeed&
@@ -58,10 +70,10 @@ package body LandscapeView is
        " float intensity=max(0.0,addi);"&LineFeed&
        " Position += vec4(float(ViewLeft+deltaX),float(ViewTop+deltaY),deltaH,0);"&LineFeed&
        " gl_Position = PerspectiveMatrix*Position;"&LineFeed&
-       " vertexColor = vec4(fract(float(ViewLeft+deltaX)/2.0),intensity*0.5+0.2,fract(float(ViewTop+deltaY)/2.0),1);"&LineFeed&
+       " vertexColor = (0.2*intensity+0.8)*vec4(fract(float(ViewLeft+deltaX)/2.0),intensity*0.5+0.2,fract(float(ViewTop+deltaY)/2.0),1);"&LineFeed&
        "}"&LineFeed;
 
-   FragmentShader : constant String :=
+   TerrainFShader : constant String :=
        "#version 330"&LineFeed&
        "smooth in vec4 vertexColor;"&LineFeed&
        "out vec4 outputColor;"&LineFeed&
@@ -70,10 +82,56 @@ package body LandscapeView is
        " outputColor=vertexColor;"&LineFeed&
        "}"&LineFeed;
 
---   BicubicTransformationMatrixT : FourDMatrix_Type:=
---     ((1.0,0.0,0.0,0.0),(0.0,0.0,1.0,0.0),(-3.0,3.0,-2.0,-1.0),(2.0,-2.0,1.0,1.0));
---   BicubicTransformationMatrix : FourDMatrix_Type:=
---     ((1.0,0.0,-3.0,2.0),(0.0,0.0,3.0,-2.0),(0.0,1.0,-2.0,1.0),(0.0,0.0,-1.0,1.0));
+   WaterVShader : constant String :=
+       "#version 330"&LineFeed&
+       "#extension GL_EXT_gpu_shader4 : enable"&LineFeed&
+       "uniform mat4 PerspectiveMatrix;"&LineFeed&
+       "uniform samplerBuffer terrain;"&LineFeed&
+       "uniform samplerBuffer select;"&LineFeed&
+       "uniform samplerBuffer ViewInformation;"&LineFeed&
+       "smooth out vec4 vertexColor;"&LineFeed&
+       "layout (location = 0) in vec4 inVertex;"&LineFeed&
+       "void main()"&LineFeed&
+       "{"&LineFeed&
+       " int TerrainWidth = int(texelFetchBuffer(ViewInformation,0).x);"&LineFeed&
+       " int ViewTop      = int(texelFetchBuffer(ViewInformation,1).x);"&LineFeed&
+       " int ViewLeft     = int(texelFetchBuffer(ViewInformation,2).x);"&LineFeed&
+       " int ViewWidth    = int(texelFetchBuffer(ViewInformation,3).x);"&LineFeed&
+       " float Amplitude  = texelFetchBuffer(ViewInformation,4).x;"&LineFeed&
+       " float WaveVector = texelFetchBuffer(ViewInformation,5).x;"&LineFeed&
+       " float Frequency  = texelFetchBuffer(ViewInformation,6).x;"&LineFeed&
+       " float Time       = texelFetchBuffer(ViewInformation,7).x;"&LineFeed&
+       " vec4 Position = inVertex;"&LineFeed&
+       " int deltaY=gl_InstanceID/ViewWidth;"&LineFeed&
+       " int deltaX=gl_InstanceID-deltaY*ViewWidth;"&LineFeed&
+       " int texelPos=(ViewTop+deltaY)*TerrainWidth+deltaX+ViewLeft;"&LineFeed&
+       " float tx     = ViewLeft+deltaX+inVertex.x;"&LineFeed&
+       " float px     = tx*WaveVector-Time*Frequency;"&LineFeed&
+       " float deltaH = sin(px);"&LineFeed&
+       " float dfx    = cos(px);"&LineFeed&
+       " float dfy    = 0;"&LineFeed&
+       " vec3 n=normalize(vec3(-dfx,-dfy,1.0));"&LineFeed&
+       " vec3 lightvec=normalize(vec3(1.0,1.0,-1.0));"&LineFeed&
+       " float addi=-dot(lightvec,n);"&LineFeed&
+       " float intensity=max(0.0,addi);"&LineFeed&
+       " Position += vec4(float(ViewLeft+deltaX),float(ViewTop+deltaY),deltaH,0);"&LineFeed&
+       " gl_Position = PerspectiveMatrix*Position;"&LineFeed&
+       " vertexColor = (0.2*intensity+0.8)*vec4(0,0,1,1);"&LineFeed&
+       "}"&LineFeed;
+
+   WaterFShader : constant String :=
+       "#version 330"&LineFeed&
+       "smooth in vec4 vertexColor;"&LineFeed&
+       "out vec4 outputColor;"&LineFeed&
+       "void main()"&LineFeed&
+       "{"&LineFeed&
+       " outputColor=vertexColor;"&LineFeed&
+       "}"&LineFeed;
+
+   BicubicTransformationMatrixT : FourDMatrix_Type:=
+     ((1.0,0.0,0.0,0.0),(0.0,0.0,1.0,0.0),(-3.0,3.0,-2.0,-1.0),(2.0,-2.0,1.0,1.0));
+   BicubicTransformationMatrix : FourDMatrix_Type:=
+     ((1.0,0.0,-3.0,2.0),(0.0,0.0,3.0,-2.0),(0.0,1.0,-2.0,1.0),(0.0,0.0,-1.0,1.0));
 
    procedure CalcPerspective
      (View : access LandscapeView_Type) is
@@ -98,7 +156,6 @@ package body LandscapeView is
       View.NearDistance := 1.0;
       View.FarDistance  := 200.0;
       View.AspectRatio := GLFloat_Type(Bounds.Width)/GLFLoat_Type(Bounds.Height);
-      Put_Line("AspectRatio"&GLFloat_Type'Image(View.AspectRatio));
 
       View.InvModelRotation := RotateZHomogenMatrix(-View.RotateZ)*RotateXHomogenMatrix(-View.RotateX);
       DebugHomogenMatrix(View.InvModelRotation);
@@ -113,7 +170,6 @@ package body LandscapeView is
 
       -- TODO: This length should be influenced by AspectRatio!
       InvLength := 1.0/Ada.Numerics.Elementary_Functions.Sqrt(2.0+View.NearDistance**2);
-      Put_Line("InvLength"&GLFLoat_Type'Image(InvLength));
 
       PosSpot := View.InverseModelMatrix * AssignHomogenVector(0.0,0.0,0.0);
 
@@ -121,41 +177,248 @@ package body LandscapeView is
       DirTopRight := View.InvModelRotation*(InvLength*AssignHomogenVector(View.AspectRatio,1.0,-View.NearDistance));
       DirBottomLeft := View.InvModelRotation*(InvLength*AssignHomogenVector(-View.AspectRatio,-1.0,-View.NearDistance));
       DirBottomRight := View.InvModelRotation*(InvLength*AssignHomogenVector(View.AspectRatio,-1.0,-View.NearDistance));
-      DebugHomogenVector(DirTopLeft);
-      DebugHomogenVector(DirTopRight);
-      DebugHomogenVector(DirBottomLeft);
-      DebugHomogenVector(DirBottomRight);
-      Put_Line("---");
 
       PosTopLeft := AssignHomogenVector(PosSpot(0)-DirTopLeft(0)*PosSpot(2)/DirTopLeft(2), PosSpot(1)-DirTopLeft(1)*PosSpot(2)/DirTopLeft(2),0.0);
       PosTopRight := AssignHomogenVector(PosSpot(0)-DirTopRight(0)*PosSpot(2)/DirTopRight(2), PosSpot(1)-DirTopRight(1)*PosSpot(2)/DirTopRight(2),0.0);
       PosBottomLeft := AssignHomogenVector(PosSpot(0)-DirBottomLeft(0)*PosSpot(2)/DirBottomLeft(2),PosSpot(1)-DirBottomLeft(1)*PosSpot(2)/DirBottomLeft(2),0.0);
       PosBottomRight := AssignHomogenVector(PosSpot(0)-DirBottomRight(0)*PosSpot(2)/DirBottomRight(2),PosSpot(1)-DirBottomRight(1)*PosSpot(2)/DirBottomRight(2),0.0);
-      DebugHomogenVector(PosTopLeft);
-      DebugHomogenVector(PosTopRight);
-      DebugHomogenVector(PosBottomLeft);
-      DebugHomogenVector(PosBottomRight);
 
       CalculateMinimalBoundingBox((PosSpot, PosTopLeft, PosTopRight, PosBottomLeft, PosBottomRight),BoundingBox);
 
-      View.BoundMinX := Integer(GLFloat_Type'Max(GLFloat_Type'Floor(BoundingBox.MinX) , 1.0));
-      View.BoundMaxX := Integer(GLFloat_Type'Min(GLFloat_Type'Ceiling(BoundingBox.MaxX), GLFloat_Type(View.TerrainWidth)-2.0));
-      View.BoundMinY := Integer(GLFloat_Type'Max(GLFloat_Type'Floor(BoundingBox.MinY), 1.0));
-      View.BoundMaxY := Integer(GLFloat_Type'Min(GLFloat_Type'Ceiling(BoundingBox.MaxY), GLFloat_Type(View.TerrainHeight)-2.0));
+      View.BoundMinX := Integer'Min(Integer(GLFloat_Type'Max(GLFloat_Type'Floor(BoundingBox.MinX) , 1.0)),View.TerrainWidth-1);
+      View.BoundMaxX := Integer'Max(Integer(GLFloat_Type'Min(GLFloat_Type'Ceiling(BoundingBox.MaxX), GLFloat_Type(View.TerrainWidth)-2.0)),0);
+      View.BoundMinY := Integer'Min(Integer(GLFloat_Type'Max(GLFloat_Type'Floor(BoundingBox.MinY), 1.0)),View.TerrainHeight-1);
+      View.BoundMaxY := Integer'Max(Integer(GLFloat_Type'Min(GLFloat_Type'Ceiling(BoundingBox.MaxY), GLFloat_Type(View.TerrainHeight)-2.0)),0);
 
-      Put_Line("MIN:"&Integer'Image(View.BoundMinX));
-      Put_Line("MAX:"&Integer'Image(View.BoundMaxX));
-      Put_Line("MIN:"&Integer'Image(View.BoundMinY)&":"&Float'Image(BoundingBox.MinY));
-      Put_Line("MAX:"&Integer'Image(View.BoundMaxY));
+      Put_Line(Integer'Image(View.BoundMinX));
+      Put_Line(Integer'Image(View.BoundMaxX));
+      Put_Line(Integer'Image(View.BoundMinY));
+      Put_Line(Integer'Image(View.BoundMaxY));
 
    end CalcPerspective;
    ---------------------------------------------------------------------------
+
+   procedure TerrainRayIntersect
+     (View : access LandscapeView_Type;
+      Ax   : Integer;
+      Ay   : Integer;
+      Sx   : out Integer;
+      Sy   : out Integer) is
+
+      Ray                  : HomogenVector_Type;
+      Position             : HomogenVector_Type;
+      StepSize             : GLFloat_Type;
+      PlanePosition        : HomogenVector_Type;
+      PlaneRay             : HomogenVector_Type;
+      PlaneIntersection    : HomogenVector_Type;
+      Step                 : GLFloat_Type:=0.0;
+      StepMaximum          : GLFloat_Type;
+      CurrentPosition      : HomogenVector_Type;
+      NextPosition         : HomogenVector_Type;
+      CurrentIntegerX      : Integer;
+      CurrentIntegerY      : Integer;
+      CurrentFracX         : GLFloat_Type;
+      CurrentFracY         : GLFloat_Type;
+      NextFracX            : GLFloat_Type;
+      NextFracY            : GLFloat_Type;
+      LastIntegerX         : Integer;
+      LastIntegerY         : Integer;
+      CurrentBicubicMatrix : FourDMatrix_Type;
+      CurrentUseMatrix     : FourDMatrix_Type;
+      p00                  : Integer;
+      p01                  : Integer;
+      p10                  : Integer;
+      p11                  : Integer;
+      CurrentHeight        : GLFloat_Type;
+      NextHeight           : GLFloat_Type;
+      CurrentBicubicHeight : GLFloat_Type;
+      NextBicubicHeight    : GLFloat_Type;
+      Intersection         : GLFloat_Type;
+      Diff                 : GLFloat_Type;
+      PlanePathLength      : GLFloat_Type;
+      PlaneRayLength       : GLFloat_Type;
+      InvPlaneRayLength    : GLFloat_Type;
+      Bounds               : constant BoundsCalc.Bounds_Type:=View.GetBounds;
+   begin
+      Ray := View.InvModelRotation * AssignHomogenVector(GLFloat_Type(Ax-Bounds.Width/2)*(2.0*View.AspectRatio/GLFloat_Type(Bounds.Width)),GLFloat_Type(Ay-Bounds.Height/2)*(-2.0/GLFloat_Type(Bounds.Height)),-View.NearDistance);
+      Position := View.InverseModelMatrix * AssignHomogenVector(0.0, 0.0, 0.0);
+      PlanePosition := AssignHomogenVector(Position(0), Position(1), 0.0);
+      PlaneRay := AssignHomogenVector(Ray(0), Ray(1), 0.0);
+      PlaneIntersection := Position - (Position(2) / Ray(2)) * Ray;
+
+      PlanePathLength := Length3DHomogenVector(PlaneIntersection - PlanePosition);
+      PlaneRayLength  := Length3DHomogenVector(PlaneRay);
+
+      InvPlaneRayLength := 1.0 / PlaneRayLength;
+
+      StepSize := 0.05 * InvPlaneRayLength;
+
+
+      StepMaximum := PlanePathLength * InvPlaneRayLength;
+
+      StepMaximum  := StepMaximum + 1.0;
+      LastIntegerX := -1;
+      LastIntegerY := -1;
+      while Step <= StepMaximum loop
+         CurrentPosition := PlanePosition + Step * PlaneRay;
+         NextPosition := PlanePosition + (Step + StepSize) * PlaneRay;
+         CurrentIntegerX := Integer(GLFloat_Type'Floor(CurrentPosition(0)));
+         CurrentIntegerY := Integer(GLFloat_Type'Floor(CurrentPosition(1)));
+         if (CurrentIntegerX>=1) and (CurrentIntegerY>=1) and
+           (CurrentIntegerX<View.TerrainWidth-1) and (CurrentIntegerY<View.TerrainHeight-1) then
+            CurrentFracX  := CurrentPosition(0)-GLFloat_Type'Floor(CurrentPosition(0));
+            CurrentFracY  := CurrentPosition(1)-GLFloat_Type'Floor(CurrentPosition(1));
+            NextFracX     := NextPosition(0)-GLFloat_Type'Floor(NextPosition(0));
+            NextFracY     := NextPosition(1)-GLFloat_Type'Floor(NextPosition(1));
+            CurrentHeight := Position(2) * (1.0 - PlaneRayLength * Step / PlanePathLength);
+            NextHeight    := Position(2) + (1.0 - PlaneRayLength * (Step + StepSize) / PlanePathLength);
+            if (CurrentIntegerX /= LastIntegerX) or (CurrentIntegerY /= LastIntegerY) then
+               p00 := CurrentIntegerX + CurrentIntegerY * View.TerrainWidth;
+               p01 := p00 + View.TerrainWidth;
+               p10 := p00 + 1;
+               p11 := p01 + 1;
+               CurrentBicubicMatrix(0, 0) := View.Terrain(p00).FLevel;
+               CurrentBicubicMatrix(0, 1) := View.Terrain(p01).FLevel;
+               CurrentBicubicMatrix(0, 2) := View.Terrain(p00).FDeriveY;
+               CurrentBicubicMatrix(0, 3) := View.Terrain(p01).FDeriveY;
+               CurrentBicubicMatrix(1, 0) := View.Terrain(p10).FLevel;
+               CurrentBicubicMatrix(1, 1) := View.Terrain(p11).FLevel;
+               CurrentBicubicMatrix(1, 2) := View.Terrain(p10).FDeriveY;
+               CurrentBicubicMatrix(1, 3) := View.Terrain(p11).FDeriveY;
+               CurrentBicubicMatrix(2, 0) := View.Terrain(p00).FDeriveX;
+               CurrentBicubicMatrix(2, 1) := View.Terrain(p01).FDeriveX;
+               CurrentBicubicMatrix(2, 2) := View.Terrain(p00).FDeriveXY;
+               CurrentBicubicMatrix(2, 3) := View.Terrain(p01).FDeriveXY;
+               CurrentBicubicMatrix(3, 0) := View.Terrain(p10).FDeriveX;
+               CurrentBicubicMatrix(3, 1) := View.Terrain(p11).FDeriveX;
+               CurrentBicubicMatrix(3, 2) := View.Terrain(p10).FDeriveXY;
+               CurrentBicubicMatrix(3, 3) := View.Terrain(p11).FDeriveXY;
+               CurrentUseMatrix := BicubicTransformationMatrixT * CurrentBicubicMatrix * BicubicTransformationMatrix;
+            end if;
+            CurrentBicubicHeight := Assign4DVector(1.0, CurrentFracX, CurrentFracX * CurrentFracX, CurrentFracX * CurrentFracX *CurrentFracX)
+              * ( CurrentUseMatrix * Assign4DVector(1.0, CurrentFracY, CurrentFracY*CurrentFracY, CurrentFracY * CurrentFracY * CurrentFracY));
+            NextBicubicHeight := Assign4DVector(1.0, NextFracX, NextFracX *NextFracX, NextFracX * NextFracX * NextFracX)
+              * (CurrentUseMatrix * Assign4DVector(1.0, NextFracY, NextFracY * NextFracY,NextFracY * NextFracY * NextFracY));
+            Diff := (NextBicubicHeight - CurrentBicubicHeight) - (NextHeight - CurrentHeight);
+
+            if (Diff /= 0.0) then
+               InterSection := (CurrentHeight - CurrentBicubicHeight) / Diff;
+               if (InterSection >= 0.0) and (InterSection <= 1.0) then
+                  SX := CurrentIntegerX;
+                  SY := CurrentIntegerY;
+                  Exit;
+               end if;
+            end if;
+
+         end if;
+         Step         := Step + StepSize;
+         LastIntegerX := CurrentIntegerX;
+         LastIntegerY := CurrentIntegerY;
+      end loop;
+   end;
 
    procedure UpdateViewCaptions
      (View : access LandscapeView_Type) is
    begin
       null;
    end UpdateViewCaptions;
+   ---------------------------------------------------------------------------
+
+   function CharacterInput
+     (View  : access LandscapeView_Type;
+      Chars : Unbounded_String)
+      return Boolean is
+   begin
+      Put_Line("Char:"&To_String(Chars)&GLFloat_Type'Image(View.Translate(2)));
+      if Chars="+" then
+         View.Translate(2):=GLFLoat_Type'Min(View.Translate(2)+1.0,-2.0);
+         CalcPerspective(View);
+         return True;
+      elsif Chars="-" then
+         View.Translate(2):=GLFloat_Type'Max(View.Translate(2)-1.0,-30.0);
+         CalcPerspective(View);
+         return True;
+      elsif Chars="a" then
+         View.RotateZ:=View.RotateZ-0.01;
+         CalcPerspective(View);
+      elsif Chars="d" then
+         View.RotateZ:=View.RotateZ+0.01;
+         CalcPerspective(View);
+      end if;
+      return False;
+   end CharacterInput;
+   ---------------------------------------------------------------------------
+
+   procedure ProcessMouseMove
+     (View : access LandscapeView_Type;
+      X    : Integer;
+      Y    : Integer) is
+   begin
+      case View.MouseMode is
+         when MouseModeUnknown =>
+            null;
+         when MouseModeSelect =>
+            null;
+         when MouseModeMove =>
+            declare
+               DX : GLFLoat_Type:=0.2*GLFloat_Type(View.MouseDownX-X);
+               DY : GLFloat_Type:=0.2*GLFloat_Type(View.MouseDownY-Y);
+            begin
+               View.Translate(0):=View.MouseDownTranslate(0)-cos(View.RotateZ)*DX+sin(View.RotateZ)*DY;
+               View.Translate(1):=View.MouseDownTranslate(1)+sin(View.RotateZ)*DX+cos(View.ROtateZ)*DY;
+
+            end;
+            View.Translate(0):=GLFloat_Type'Max(GLFloat_Type'Min(View.Translate(0),0.0),-GLFloat_Type(View.TerrainWidth));
+            View.Translate(1):=GLFloat_Type'Max(GLFloat_Type'Min(View.Translate(1),0.0),-GLFloat_Type(View.TerrainHeight));
+            CalcPerspective(View);
+      end case;
+   end ProcessMouseMove;
+   ---------------------------------------------------------------------------
+
+   function MouseDown
+     (View   : access LandscapeView_Type;
+      Button : MouseButton_Enum;
+      X      : Integer;
+      Y      : Integer)
+      return Boolean is
+
+   begin
+
+      -- TODO: Finalize MouseMode
+      View.MouseDownX := X;
+      View.MouseDownY := Y;
+      View.MouseDownTranslate := View.Translate;
+
+      if Button=LeftButton then
+         View.MouseMode := MouseModeSelect;
+      elsif Button=RightButton then
+         View.MouseMode := MouseModeMove;
+      end if;
+
+      return True;
+
+   end MouseDown;
+   ---------------------------------------------------------------------------
+
+   procedure MouseMove
+     (View : access LandscapeView_Type;
+      X : Integer;
+      Y : Integer) is
+   begin
+      ProcessMouseMove(View,X,Y);
+   end MouseMove;
+   ---------------------------------------------------------------------------
+
+   overriding
+   procedure MouseUp
+     (View   : access LandscapeView_Type;
+      Button : MouseButton_Enum;
+      X      : Integer;
+      Y      : Integer) is
+   begin
+      ProcessMouseMove(View,X,Y);
+      View.MouseMode := MouseModeUnknown;
+   end MouseUp;
    ---------------------------------------------------------------------------
 
    procedure Resize
@@ -165,13 +428,19 @@ package body LandscapeView is
    end Resize;
    ---------------------------------------------------------------------------
 
+   Count : Float:=0.0;
+
    procedure RenderCustom
      (View : access LandscapeView_Type) is
+
+      use type Ada.Real_Time.Time_Span;
 
       AbsBounds   : AbsBounds_Type renames View.AbsBounds;
       Bounds      : constant Bounds_Type := View.GetBounds;
       AspectRatio : GLDouble_Type;
-      InfoBuffer : Float_Access;
+      InfoBuffer  : Float_Access;
+      usematrix   : HomogenMatrix_Type;
+      DeltaTime   : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Clock-View.StartTime;
 
    begin
       AssertError("RenderCustom.Start");
@@ -188,6 +457,15 @@ package body LandscapeView is
       InfoBuffer:=InfoBuffer+1;
       InfoBuffer.all:=GLFLoat_Type(View.BoundMaxX-View.BoundMinX+1);
       InfoBuffer:=InfoBuffer+1;
+      InfoBuffer.all:=0.1; -- Amplitude
+      InfoBuffer:=InfoBuffer+1;
+      InfoBuffer.all:=1.0/2.0; -- Wavevector
+      InfoBuffer:=InfoBuffer+1;
+      InfoBuffer.all:=1.0/2.0; -- Frequency
+      InfoBuffer:=InfoBuffer+1;
+      Put_Line("F:"&Duration'Image(Ada.Real_Time.To_Duration(DeltaTime)));
+      Count:=Count+1.0;
+      InfoBuffer.all:=Float(Ada.Real_Time.To_Duration(DeltaTime)); -- Time
       OpenGL.BufferTexture.Unmap(View.ViewInformationBuffer);
 
       glViewPort(GLint_Type(AbsBounds.AbsLeft - AbsBounds.AbsSubLeft),
@@ -217,42 +495,37 @@ package body LandscapeView is
       glRotatef(View.RotateX*180.0/3.14, 1.0, 0.0, 0.0);
       glRotatef(View.RotateZ*180.0/3.14, 0.0, 0.0, 1.0);
       glTranslatef(View.Translate(0), View.Translate(1), View.Translate(2));
+      glGetFloatv(GL_PROJECTION_MATRIX, usematrix(0,0)'Access);
+      usematrix:=Transpose(View.ModelMatrix)*usematrix;
 
-      glBegin(GL_QUADS);
-      glColor4f(0.0,0.0,1.0,1.0);
-      glVertex3f(GLFLoat_Type(View.BoundMinX),GLFLoat_Type(View.BoundMinY),0.1);
-      glVertex3f(GLFloat_Type(View.BoundMinX),GLFloat_Type(View.BoundMaxY+1),0.1);
-      glVertex3f(GLFloat_Type(View.BoundMaxX+1),GLFloat_Type(View.BoundMaxY+1),0.1);
-      glVertex3f(GLFLoat_Type(View.BoundMaxX+1),GLFLoat_Type(View.BoundMinY),0.1);
-      glEnd;
+      OpenGL.Program.UseProgram(View.WaterShader);
+
+      glUniformMatrix4fv(View.WaterShaderUniformPerspectiveMatrix,1, GL_FALSE, usematrix(0,0)'Access);
+      glBindBuffer(GL_ARRAY_BUFFER, View.TerrainVBO);
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(0,4,GL_FLOAT,GL_FALSE,0,System.Null_Address);
+      OpenGL.BufferTexture.Activate(View.ViewInformationBuffer,1);
+      OpenGL.BufferTexture.Activate(View.TerrainGeometryBuffer,2);
+      OpenGL.BufferTexture.Activate(View.TerrainSelectionBuffer,3);
+      glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, GLint_Type(DetailVertexCount),
+                            GLint_Type((View.BoundMaxY-View.BoundMinY+1)*(View.BoundMaxX-View.BoundMinX+1)));
+
+      AssertError("UniformMatrix4f");
 
       OpenGL.Program.UseProgram(View.TerrainShader);
 
-      declare
-         usematrix : HomogenMatrix_Type;
-      begin
-         glGetFloatv(GL_PROJECTION_MATRIX, usematrix(0,0)'Access);
-         AssertError("get Projection");
-         usematrix:=Transpose(View.ModelMatrix)*usematrix;
-         glUniformMatrix4fv(View.TerrainShaderUniformPerspectiveMatrix,1, GL_FALSE, usematrix(0,0)'Access);
-         glBindBuffer(GL_ARRAY_BUFFER, View.TerrainVBO);
-         glEnableVertexAttribArray(0);
-         glVertexAttribPointer(0,4,GL_FLOAT,GL_FALSE,0,System.Null_Address);
-         OpenGL.BufferTexture.Activate(View.ViewInformationBuffer,1);
-         OpenGL.BufferTexture.Activate(View.TerrainGeometryBuffer,2);
-         OpenGL.BufferTexture.Activate(View.TerrainSelectionBuffer,3);
-         glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, GLint_Type(DetailVertexCount),
-                               GLint_Type((View.BoundMaxY-View.BoundMinY+1)*(View.BoundMaxX-View.BoundMinX+1)));
-         BindTexture(GL_TEXTURE_BUFFER,1,0);
-         BindTexture(GL_TEXTURE_BUFFER,2,0);
-         BindTexture(GL_TEXTURE_BUFFER,3,0);
-         glDisableVertexAttribArray(0);
-         glBindBuffer(GL_ARRAY_BUFFER, 0);
+      glUniformMatrix4fv(View.TerrainShaderUniformPerspectiveMatrix,1, GL_FALSE, usematrix(0,0)'Access);
+      glBindBuffer(GL_ARRAY_BUFFER, View.TerrainVBO);
+      glVertexAttribPointer(0,4,GL_FLOAT,GL_FALSE,0,System.Null_Address);
+      glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, GLint_Type(DetailVertexCount),
+                            GLint_Type((View.BoundMaxY-View.BoundMinY+1)*(View.BoundMaxX-View.BoundMinX+1)));
+      BindTexture(GL_TEXTURE_BUFFER,1,0);
+      BindTexture(GL_TEXTURE_BUFFER,2,0);
+      BindTexture(GL_TEXTURE_BUFFER,3,0);
+      glDisableVertexAttribArray(0);
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-         AssertError("UniformMatrix4f");
-      end;
-
-
+      AssertError("UniformMatrix4f");
 
       glUseProgram(0);
 
@@ -266,6 +539,8 @@ package body LandscapeView is
    procedure CreateTerrainGeometryBuffer
      (View : access LandscapeView_Type) is
       Data : Float_Access;
+      AmplitudeX : constant Float:=5.0;
+      FreqX : constant Float:=1.0/10.0;
    begin
 
       -- TODO: Check why there must be a +1 in order to prevent an exception when filling the buffer.
@@ -280,9 +555,9 @@ package body LandscapeView is
 
       for y in 0..View.TerrainHeight-1 loop
          for x in 0..View.TerrainWidth-1 loop
-            Data.all := sin(GLFloat_Type(x)/10.0,Ada.Numerics.Pi);
+            Data.all := AmplitudeX*sin(GLFloat_Type(x)*FreqX,2.0*Ada.Numerics.Pi);
             Data:=Data+1;
-            Data.all := 1.0/10.0*cos(GLFloat_Type(x)/10.0,Ada.Numerics.Pi);
+            Data.all := AmplitudeX*FreqX*cos(GLFloat_Type(x)*FreqX,2.0*Ada.Numerics.Pi);
             Data:=Data+1;
             Data.all := 0.0;
             Data:=Data+1;
@@ -301,7 +576,7 @@ package body LandscapeView is
    begin
       OpenGL.BufferTexture.Create
         (Tex       => View.ViewInformationBuffer,
-         Size      => 16*4,
+         Size      => 32*4,
          BasicType => GL_LUMINANCE32F,
          UseHint   => GL_DYNAMIC_DRAW);
 
@@ -349,7 +624,6 @@ package body LandscapeView is
       ------------------------------------------------------------------------
 
    begin
-      Put_Line("FIll VBO");
       CurrentDirection := 1;
       for CurrentY in 0..DetailLevel-1 loop
          if CurrentDirection = 1 then
@@ -371,7 +645,6 @@ package body LandscapeView is
          end if;
       end loop;
 
-      Put_Line("Done VBO");
       glGenBuffers(1,View.TerrainVBO'Access);
       glBindBuffer(GL_ARRAY_BUFFER, View.TerrainVBO);
       glBufferData(GL_ARRAY_BUFFER, GLsizeiptr_Type(Data'Size/8), Data(0)'Address, GL_STATIC_DRAW);
@@ -401,6 +674,8 @@ package body LandscapeView is
       View        := new LandscapeView_Type;
       View.Render := GUIDefinitions.RenderCustom;
       View.Initialize(Parent => Parent);
+      View.FocusStyle:=GUIDefinitions.FocusStyleAccept;
+      View.StartTime := Ada.Real_Time.Clock;
 
       CreateTerrainGeometryBuffer(View);
       CreateTerrainInformationBuffer(View);
@@ -414,13 +689,13 @@ package body LandscapeView is
       OpenGL.Program.Create
         (Shader     => View.TerrainVShader,
          ShaderType => OpenGL.Program.ShaderVertex,
-         Source     => TerrainShader);
+         Source     => TerrainVShader);
       Put_Line(To_String(OpenGL.Program.GetCompileLog(View.TerrainVShader)));
 
       OpenGL.Program.Create
         (Shader     => View.TerrainFShader,
          ShaderType => OpenGL.Program.ShaderFragment,
-         Source     => FragmentShader);
+         Source     => TerrainFShader);
       Put_Line(To_String(OpenGL.Program.GetCompileLog(View.TerrainFShader)));
 
       OpenGL.Program.Create
@@ -431,19 +706,43 @@ package body LandscapeView is
       OpenGL.Program.UseProgram(View.TerrainShader);
       AssertError("UseProgram");
       View.TerrainShaderUniformTerrain := OpenGL.Program.GetUniformLocation(View.TerrainShader,"terrain");
-      Put_Line("Terrain(Uniform):"&GLint_Type'Image(View.TerrainShaderUniformTerrain));
       View.TerrainShaderUniformSelect := OpenGL.Program.GetUniformLocation(View.TerrainShader,"select");
-      Put_Line("Select(Uniform):"&GLint_Type'Image(View.TerrainShaderUniformSelect));
       View.TerrainShaderUniformViewInformation := OpenGL.Program.GetUniformLocation(View.TerrainShader,"ViewInformation");
-      Put_Line("ViewInformation(Uniform):"&GLint_Type'Image(View.TerrainShaderUniformViewInformation));
       View.TerrainShaderUniformPerspectiveMatrix := OpenGL.Program.GetUniformLocation(View.TerrainShader,"PerspectiveMatrix");
-      Put_Line("Perspective(Uniform):"&GLint_Type'Image(View.TerrainShaderUniformPerspectiveMatrix));
       AssertError("Get Uniforms");
       glUniform1i(View.TerrainShaderUniformViewInformation,1);
       glUniform1i(View.TerrainShaderUniformTerrain,2);
       glUniform1i(View.TerrainShaderUniformSelect,3);
       AssertError("Set Uniforms");
       glUseProgram(0);
+
+      OpenGL.Program.Create
+        (Shader     => View.WaterVShader,
+         ShaderType => OpenGL.Program.ShaderVertex,
+         Source     => WaterVShader);
+      Put_Line(To_String(OpenGL.Program.GetCompileLog(View.WaterFShader)));
+
+      OpenGL.Program.Create
+        (Shader     => View.WaterFShader,
+         ShaderType => OpenGL.Program.ShaderFragment,
+         Source     => WaterFShader);
+      Put_Line(To_String(OpenGL.Program.GetCompileLog(View.WaterVShader)));
+
+      OpenGL.Program.Create
+        (Program => View.WaterShader,
+         Shaders => (OpenGL.Program.ShaderVertex   => View.WaterVShader'Access,
+                     OpenGL.Program.ShaderFragment => View.WaterFShader'Access));
+
+      OpenGL.Program.UseProgram(View.WaterShader);
+      AssertError("UseProgram");
+      View.WaterShaderUniformSelect := OpenGL.Program.GetUniformLocation(View.WaterShader,"select");
+      View.WaterShaderUniformViewInformation := OpenGL.Program.GetUniformLocation(View.WaterShader,"ViewInformation");
+      View.WaterShaderUniformPerspectiveMatrix := OpenGL.Program.GetUniformLocation(View.WaterShader,"PerspectiveMatrix");
+      AssertError("Get Uniforms");
+      glUniform1i(View.WaterShaderUniformViewInformation,1);
+      glUniform1i(View.WaterShaderUniformSelect,3);
+      AssertError("Set Uniforms");
+      glUsePRogram(0);
 
       CalcPerspective(View);
 
