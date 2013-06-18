@@ -119,6 +119,7 @@ package body OpenGL.Context is
 
       procedure SetupView is
       begin
+
          glViewPort
            (x      => 0,
             y      => 0,
@@ -140,6 +141,7 @@ package body OpenGL.Context is
 
          glDisable(GL_SCISSOR_TEST);
          glDisable(GL_DEPTH_TEST);
+         glActiveTexture(GL_TEXTURE0);
          glEnable(GL_TEXTURE_2D);
          glBlendFunc
            (sfactor => GL_SRC_ALPHA,
@@ -148,8 +150,9 @@ package body OpenGL.Context is
            (func => GL_GREATER,
             ref  => 0.1);
          glEnable(GL_BLEND);
-         glActiveTexture(GL_TEXTURE0);
+         glUseProgram(0);
          glColor4f(1.0,1.0,1.0,1.0);
+
       end SetupView;
       ------------------------------------------------------------------------
 

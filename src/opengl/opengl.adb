@@ -193,6 +193,11 @@ package body OpenGL is
       if CurrentTextures(Unit)/=Texture then
          if CurrentUnit/=Unit then
             glActiveTexture(GL_TEXTURE0+GLenum_Type(Unit));
+            if Texture/=0 then
+               glEnable(GL_TEXTURE_2D);
+            else
+               glDisable(GL_TEXTURE_2D);
+            end if;
             CurrentUnit:=Unit;
          end if;
          glBindTexture

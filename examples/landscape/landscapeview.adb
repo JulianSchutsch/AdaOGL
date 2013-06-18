@@ -1,6 +1,6 @@
 with BoundsCalc; use BoundsCalc;
 with GUIDefinitions;
-with Ada.Numerics.Elementary_Functions;
+with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
 with Bytes; use Bytes;
 with Types; use Types;
 with Ada.Text_IO; use Ada.Text_IO;
@@ -11,7 +11,7 @@ package body LandscapeView is
 
    LineFeed : constant Character := Character'Val(10);
 
-   DetailLevel  : constant Integer:=32;
+   DetailLevel  : constant Integer:=16;
    DetailVertexCount : constant Integer:=DetailLevel*(DetailLevel*2+2);
 
    TerrainShader : constant String :=
@@ -210,24 +210,21 @@ package body LandscapeView is
       glClear(GL_DEPTH_BUFFER_BIT);
       glEnable(GL_DEPTH_TEST);
 
+      glUseProgram(0);
+
       glMatrixMode(GL_MODELVIEW);
       glLoadIdentity;
-      declare
-         Position : GLfloat_Array(0..3):=(-1.0,0.0,0.0,1.0);
-      begin
-         glLightfv(GL_LIGHT0,GL_POSITION,Position(0)'Access);
-      end;
-
-      glRotatef(View.RotateX, 1.0, 0.0, 0.0);
-      glRotatef(View.RotateZ, 0.0, 0.0, 1.0);
+      glRotatef(View.RotateX*180.0/3.14, 1.0, 0.0, 0.0);
+      glRotatef(View.RotateZ*180.0/3.14, 0.0, 0.0, 1.0);
       glTranslatef(View.Translate(0), View.Translate(1), View.Translate(2));
---      glBegin(GL_QUADS);
---      glColor4f(0.0,0.0,1.0,1.0);
---      glVertex3f(GLFLoat_Type(View.BoundMinX),GLFLoat_Type(View.BoundMinY),0.1);
---      glVertex3f(GLFloat_Type(View.BoundMinX),GLFloat_Type(View.BoundMaxY+1),0.1);
---      glVertex3f(GLFloat_Type(View.BoundMaxX),GLFloat_Type(View.BoundMaxY+1),0.1);
---      glVertex3f(GLFLoat_Type(View.BoundMaxX),GLFLoat_Type(View.BoundMinY),0.1);
---      glEnd;
+
+      glBegin(GL_QUADS);
+      glColor4f(0.0,0.0,1.0,1.0);
+      glVertex3f(GLFLoat_Type(View.BoundMinX),GLFLoat_Type(View.BoundMinY),0.1);
+      glVertex3f(GLFloat_Type(View.BoundMinX),GLFloat_Type(View.BoundMaxY+1),0.1);
+      glVertex3f(GLFloat_Type(View.BoundMaxX+1),GLFloat_Type(View.BoundMaxY+1),0.1);
+      glVertex3f(GLFLoat_Type(View.BoundMaxX+1),GLFLoat_Type(View.BoundMinY),0.1);
+      glEnd;
 
       OpenGL.Program.UseProgram(View.TerrainShader);
 
@@ -246,6 +243,9 @@ package body LandscapeView is
          OpenGL.BufferTexture.Activate(View.TerrainSelectionBuffer,3);
          glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, GLint_Type(DetailVertexCount),
                                GLint_Type((View.BoundMaxY-View.BoundMinY+1)*(View.BoundMaxX-View.BoundMinX+1)));
+         BindTexture(GL_TEXTURE_BUFFER,1,0);
+         BindTexture(GL_TEXTURE_BUFFER,2,0);
+         BindTexture(GL_TEXTURE_BUFFER,3,0);
          glDisableVertexAttribArray(0);
          glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -258,7 +258,6 @@ package body LandscapeView is
 
       UpdateViewCaptions(View);
 
-      glDisable(GL_LIGHTING);
       AssertError("RenderCustom");
 
    end RenderCustom;
@@ -266,7 +265,7 @@ package body LandscapeView is
 
    procedure CreateTerrainGeometryBuffer
      (View : access LandscapeView_Type) is
-      Data : Cardinal32_Access;
+      Data : Float_Access;
    begin
 
       -- TODO: Check why there must be a +1 in order to prevent an exception when filling the buffer.
@@ -277,17 +276,17 @@ package body LandscapeView is
          BasicType => GL_RGBA32F,
          UseHint   => GL_STATIC_DRAW);
 
-      Data := AddressToCardinal32Access(OpenGL.BufferTexture.MapWriteOnly(Tex => View.TerrainGeometryBuffer));
+      Data := AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(Tex => View.TerrainGeometryBuffer));
 
       for y in 0..View.TerrainHeight-1 loop
          for x in 0..View.TerrainWidth-1 loop
-            Data.all:=1;
+            Data.all := sin(GLFloat_Type(x)/10.0,Ada.Numerics.Pi);
             Data:=Data+1;
-            Data.all:=0;
+            Data.all := 1.0/10.0*cos(GLFloat_Type(x)/10.0,Ada.Numerics.Pi);
             Data:=Data+1;
-            Data.all:=0;
+            Data.all := 0.0;
             Data:=Data+1;
-            Data.all:=0;
+            Data.all := 0.0;
             Data:=Data+1;
          end loop;
       end loop;
