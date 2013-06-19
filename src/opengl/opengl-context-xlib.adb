@@ -251,6 +251,7 @@ package body OpenGL.Context.Xlib is
                      AdaBuffer(1..Integer(NumberOfChars)):=Interfaces.C.Strings.Value
                        (Item   => Buffer,
                         Length => Interfaces.C.size_t(NumberOfChars));
+                     Put_Line("Key.Num"&Interfaces.C.int'Image(NumberOfChars));
                      if NumberOfChars=1 then
                         case AdaBuffer(1) is
                            when Character'Val(8) =>
@@ -282,6 +283,7 @@ package body OpenGL.Context.Xlib is
                   end if;
 
                   if (Status=XLookupKeySym) then
+                     Put_Line("KeySpec:"&KeySim_Type'Image(KeySym));
                      case KeySym is
                         when 65363 =>
                            ContextKeyDown
@@ -299,6 +301,14 @@ package body OpenGL.Context.Xlib is
                            ContextKeyDown
                              (Context => Context_ClassAccess(Context),
                               Key     => KeyDown);
+                        when 65365 =>
+                           ContextKeyDown
+                             (Context => Context_ClassAccess(Context),
+                              Key     => KeyPageUp);
+                        when 65366 =>
+                           ContextKeyDown
+                             (Context => Context_ClassAccess(Context),
+                              Key     => KeyPageDown);
                         when others =>
                            null;
                      end case;

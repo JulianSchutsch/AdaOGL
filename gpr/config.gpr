@@ -18,7 +18,7 @@
 ------------------------------------------------------------------------------- 
 
 -- This project file was created automatically and is only valid for:
---   WindowsNT
+--   Linux
 
 abstract project Config is
 
@@ -27,14 +27,14 @@ abstract project Config is
       "Linux",
       "WindowsNT");
 
-   Detected : Plattform_Type:="WindowsNT";
+   Detected : Plattform_Type:="Linux";
 
    type Active_Type is ("On","Off");
 
    bsdsockets           : Active_Type:="On";
    mpich2               : Active_Type:="Off";
-   wgl                  : Active_Type:="On";
-   xlib                 : Active_Type:="Off";
+   wgl                  : Active_Type:="Off";
+   xlib                 : Active_Type:="On";
    freetype             : Active_Type:="Off";
    bitmapfonts          : Active_Type:="On";
 
