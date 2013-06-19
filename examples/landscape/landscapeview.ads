@@ -56,9 +56,6 @@ package LandscapeView is
          BoundMaxX : Integer;
          BoundMinY : Integer;
          BoundMaxY : Integer;
-         Selecting : Boolean;
-         SelectX   : Integer;
-         SelectY   : Integer;
          AspectRatio  : GLFloat_Type;
          NearDistance : GLFloat_Type;
          FarDistance  : GLFloat_Type;
@@ -68,6 +65,12 @@ package LandscapeView is
          MouseDownX : Integer;
          MouseDownY : Integer;
          StartTime : Ada.Real_Time.Time;
+
+         ValidSelection : Boolean:=False;
+         SelectStartX : Integer;
+         SelectStartY : Integer;
+         SelectStopX  : Integer;
+         SelectStopY  : Integer;
       end record;
    type LandscapeView_Access is access all LandscapeView_Type;
 
@@ -106,6 +109,10 @@ package LandscapeView is
    procedure Resize
      (View : access LandscapeView_Type);
    ---------------------------------------------------------------------------
+
+   not overriding
+   procedure Terraform_Flat
+     (View : access LandscapeView_Type);
 
    function NewLandscapeView
      (Parent : GUI.Object_ClassAccess;

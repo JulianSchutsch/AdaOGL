@@ -49,6 +49,7 @@ package body LandscapeView is
        " vec4 Data2=texelFetchBuffer(terrain,texelPos+TerrainWidth);"&LineFeed&
        " vec4 Data3=texelFetchBuffer(terrain,texelPos+1);"&LineFeed&
        " vec4 Data4=texelFetchBuffer(terrain,texelPos+TerrainWidth+1);"&LineFeed&
+       " float SelFlag = texelFetchBuffer(select,texelPos);"&LineFeed&
        " mat4 C=mat4(Data1.r,Data3.r,Data1.g,Data3.g,"&LineFeed&
        "             Data2.r,Data4.r,Data2.g,Data4.g,"&LineFeed&
        "             Data1.b,Data3.b,Data1.a,Data3.a,"&LineFeed&
@@ -70,7 +71,7 @@ package body LandscapeView is
        " float intensity=max(0.0,addi);"&LineFeed&
        " Position += vec4(float(ViewLeft+deltaX),float(ViewTop+deltaY),deltaH,0);"&LineFeed&
        " gl_Position = PerspectiveMatrix*Position;"&LineFeed&
-       " vertexColor = (0.2*intensity+0.8)*vec4(fract(float(ViewLeft+deltaX)/2.0),intensity*0.5+0.2,fract(float(ViewTop+deltaY)/2.0),1);"&LineFeed&
+       " vertexColor = (0.2*intensity+0.8)*vec4(SelFlag*0.5+fract(float(ViewLeft+deltaX)/2.0),0.6,fract(float(ViewTop+deltaY)/2.0),1);"&LineFeed&
        "}"&LineFeed;
 
    TerrainFShader : constant String :=
@@ -105,9 +106,10 @@ package body LandscapeView is
        " int deltaY=gl_InstanceID/ViewWidth;"&LineFeed&
        " int deltaX=gl_InstanceID-deltaY*ViewWidth;"&LineFeed&
        " int texelPos=(ViewTop+deltaY)*TerrainWidth+deltaX+ViewLeft;"&LineFeed&
+       " float SelFlag = texelFetchBuffer(select,texelPos);"&LineFeed&
        " float tx     = ViewLeft+deltaX+inVertex.x;"&LineFeed&
        " float px     = tx*WaveVector-Time*Frequency;"&LineFeed&
-       " float deltaH = sin(px);"&LineFeed&
+       " float deltaH = sin(px)+5.0;"&LineFeed&
        " float dfx    = cos(px);"&LineFeed&
        " float dfy    = 0;"&LineFeed&
        " vec3 n=normalize(vec3(-dfx,-dfy,1.0));"&LineFeed&
@@ -116,7 +118,7 @@ package body LandscapeView is
        " float intensity=max(0.0,addi);"&LineFeed&
        " Position += vec4(float(ViewLeft+deltaX),float(ViewTop+deltaY),deltaH,0);"&LineFeed&
        " gl_Position = PerspectiveMatrix*Position;"&LineFeed&
-       " vertexColor = (0.2*intensity+0.8)*vec4(0,0,1,1);"&LineFeed&
+       " vertexColor = (0.2*intensity+0.8)*vec4(SelFlag*0.5,0,1,1);"&LineFeed&
        "}"&LineFeed;
 
    WaterFShader : constant String :=
@@ -196,6 +198,43 @@ package body LandscapeView is
       Put_Line(Integer'Image(View.BoundMaxY));
 
    end CalcPerspective;
+   ---------------------------------------------------------------------------
+
+   procedure ModifySelectionBuffer
+     (View : access LandscapeView_Type;
+      StartX : Integer;
+      StartY : Integer;
+      StopX  : Integer;
+      StopY  : Integer;
+      Value  : GLFLoat_Type) is
+
+      RStartX : Integer;
+      RStartY : Integer;
+      RStopX  : Integer;
+      RStopY  : Integer;
+      Data    : Float_Access;
+      DataP   : Float_Access;
+
+   begin
+
+      RStartX := Integer'Max(Integer'Min(StartX,StopX),0);
+      Put_Line("RX:"&Integer'Image(RStartX));
+      RStopX  := Integer'Min(Integer'Max(StartX,StopX),View.TerrainWidth-1);
+      RStartY := Integer'Max(Integer'Min(StartY,StopY),0);
+      RStopY  := Integer'Min(Integer'Max(StartY,StopY),View.TerrainHeight-1);
+
+      Data:=AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(View.TerrainSelectionBuffer));
+
+      for y in RStartY..RStopY loop
+         DataP:=Data+y*View.TerrainWidth+RStartX;
+         for x in RStartX..RStopX loop
+            DataP.all:=Value;
+            DataP:=DataP+1;
+         end loop;
+      end loop;
+      OpenGL.BufferTexture.Unmap(View.TerrainSelectionBuffer);
+
+   end ModifySelectionBuffer;
    ---------------------------------------------------------------------------
 
    procedure TerrainRayIntersect
@@ -324,6 +363,51 @@ package body LandscapeView is
    end UpdateViewCaptions;
    ---------------------------------------------------------------------------
 
+   procedure Terraform_Flat
+     (View : access LandscapeView_Type) is
+      RStartX : Integer;
+      RStartY : Integer;
+      RStopX  : Integer;
+      RStopY  : Integer;
+      Data    : Float_Access;
+      DataP   : Float_Access;
+      Pos     : Natural;
+   begin
+      RStartX := Integer'Max(Integer'Min(View.SelectStartX,View.SelectStopX),0);
+      Put_Line("RX:"&Integer'Image(RStartX));
+      RStopX  := Integer'Min(Integer'Max(View.SelectStartX,View.SelectStopX),View.TerrainWidth-1);
+      RStartY := Integer'Max(Integer'Min(View.SelectStartY,View.SelectStopY),0);
+      RStopY  := Integer'Min(Integer'Max(View.SelectStartY,View.SelectStopY),View.TerrainHeight-1);
+
+      Data:=AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(View.TerrainGeometryBuffer));
+
+      for y in RStartY..RStopY loop
+         Pos:=y*View.TerrainWidth+RStartX;
+         DataP:=(Data+Pos*4);
+         for x in RStartX..RStopX loop
+            declare
+               Cell:TerrainCell_Type renames View.Terrain(Pos);
+            begin
+               Cell.Flevel    := 8.0;
+               Cell.FDeriveX  := 0.0;
+               Cell.FDeriveY  := 0.0;
+               Cell.FDeriveXY := 0.0;
+               DataP.all:=Cell.FLevel;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveX;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveY;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveXY;
+               DataP:=DataP+1;
+            end;
+            Pos:=Pos+1;
+         end loop;
+      end loop;
+      OpenGL.BufferTexture.Unmap(View.TerrainSelectionBuffer);
+   end Terraform_Flat;
+   ---------------------------------------------------------------------------
+
    function CharacterInput
      (View  : access LandscapeView_Type;
       Chars : Unbounded_String)
@@ -341,9 +425,14 @@ package body LandscapeView is
       elsif Chars="a" then
          View.RotateZ:=View.RotateZ-0.01;
          CalcPerspective(View);
+         return True;
       elsif Chars="d" then
          View.RotateZ:=View.RotateZ+0.01;
          CalcPerspective(View);
+         return True;
+      elsif Chars="f" then
+         Terraform_Flat(View);
+         return True;
       end if;
       return False;
    end CharacterInput;
@@ -358,7 +447,11 @@ package body LandscapeView is
          when MouseModeUnknown =>
             null;
          when MouseModeSelect =>
-            null;
+            ModifySelectionBuffer(View,View.SelectStartX,View.SelectStartY,View.SelectStopX,View.SelectStopY,0.0);
+            TerrainRayIntersect(View,X,Y,View.SelectStopX,View.SelectStopY);
+            Put_Line("X:"&Integer'Image(View.SelectStartX)&":"&Integer'Image(View.SelectStopX));
+            Put_Line("Y:"&Integer'Image(View.SelectStartY)&":"&Integer'Image(View.SelectStopY));
+            ModifySelectionBuffer(View,View.SelectStartX,View.SelectStartY,View.SelectStopX,View.SelectStopY,1.0);
          when MouseModeMove =>
             declare
                DX : GLFLoat_Type:=0.2*GLFloat_Type(View.MouseDownX-X);
@@ -390,10 +483,20 @@ package body LandscapeView is
       View.MouseDownTranslate := View.Translate;
 
       if Button=LeftButton then
+         if View.ValidSelection then
+            ModifySelectionBuffer(View,View.SelectStartX,View.SelectStartY,View.SelectStopX,View.SelectStopY,0.0);
+         end if;
          View.MouseMode := MouseModeSelect;
+         View.ValidSelection:=True;
+         TerrainRayIntersect(View,X,Y,View.SelectStartX,View.SelectStartY);
       elsif Button=RightButton then
+         if View.ValidSelection then
+            View.ValidSelection:=False;
+            ModifySelectionBuffer(View,View.SelectStartX,View.SelectStartY,View.SelectStopX,View.SelectStopY,0.0);
+         end if;
          View.MouseMode := MouseModeMove;
       end if;
+      ProcessMouseMove(View,X,Y);
 
       return True;
 
@@ -416,7 +519,6 @@ package body LandscapeView is
       X      : Integer;
       Y      : Integer) is
    begin
-      ProcessMouseMove(View,X,Y);
       View.MouseMode := MouseModeUnknown;
    end MouseUp;
    ---------------------------------------------------------------------------
@@ -463,7 +565,6 @@ package body LandscapeView is
       InfoBuffer:=InfoBuffer+1;
       InfoBuffer.all:=1.0/2.0; -- Frequency
       InfoBuffer:=InfoBuffer+1;
-      Put_Line("F:"&Duration'Image(Ada.Real_Time.To_Duration(DeltaTime)));
       Count:=Count+1.0;
       InfoBuffer.all:=Float(Ada.Real_Time.To_Duration(DeltaTime)); -- Time
       OpenGL.BufferTexture.Unmap(View.ViewInformationBuffer);
@@ -541,6 +642,7 @@ package body LandscapeView is
       Data : Float_Access;
       AmplitudeX : constant Float:=5.0;
       FreqX : constant Float:=1.0/10.0;
+      Pos : Natural;
    begin
 
       -- TODO: Check why there must be a +1 in order to prevent an exception when filling the buffer.
@@ -553,16 +655,29 @@ package body LandscapeView is
 
       Data := AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(Tex => View.TerrainGeometryBuffer));
 
+      View.Terrain:=new Terrain_Array(0..View.TerrainHeight*View.TerrainWidth-1);
+      Pos:=0;
+
       for y in 0..View.TerrainHeight-1 loop
          for x in 0..View.TerrainWidth-1 loop
-            Data.all := AmplitudeX*sin(GLFloat_Type(x)*FreqX,2.0*Ada.Numerics.Pi);
-            Data:=Data+1;
-            Data.all := AmplitudeX*FreqX*cos(GLFloat_Type(x)*FreqX,2.0*Ada.Numerics.Pi);
-            Data:=Data+1;
-            Data.all := 0.0;
-            Data:=Data+1;
-            Data.all := 0.0;
-            Data:=Data+1;
+            declare
+               Cell : TerrainCell_Type;
+            begin
+               Cell.Flevel := AmplitudeX*sin(GLFloat_Type(x)*FreqX,2.0*Ada.Numerics.Pi)+AmplitudeX;
+               Cell.FDeriveX := AmplitudeX*FreqX*cos(GLFloat_Type(x)*FreqX,2.0*Ada.Numerics.Pi);
+               Cell.FDeriveY := 0.0;
+               Cell.FDeriveXY := 0.0;
+               Data.all := Cell.Flevel;
+               Data:=Data+1;
+               Data.all := Cell.FDeriveX;
+               Data:=Data+1;
+               Data.all := Cell.FDeriveY;
+               Data:=Data+1;
+               Data.all := Cell.FDeriveXY;
+               Data:=Data+1;
+               View.Terrain(Pos):=Cell;
+               Pos:=Pos+1;
+            end;
          end loop;
       end loop;
 
@@ -585,20 +700,23 @@ package body LandscapeView is
 
    procedure CreateTerrainSelectionBuffer
      (View : access LandscapeView_Type) is
-      Data : Cardinal32_Access;
+      Data : Float_Access;
    begin
       OpenGL.BufferTexture.Create
         (Tex       => View.TerrainSelectionBuffer,
          Size      => GLsizeiptr_Type(View.TerrainHeight*View.TerrainWidth*4+1),
          BasicType => GL_LUMINANCE32F,
          UseHint   => GL_STATIC_DRAW);
-      Data := AddressToCardinal32Access(OpenGL.BufferTexture.MapWriteOnly(Tex => View.TerrainSelectionBuffer));
+
+      Data := AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(Tex => View.TerrainSelectionBuffer));
+
       for y in 0..View.TerrainHeight-1 loop
          for x in 0..View.TerrainWidth-1 loop
-            Data.all:=Cardinal32((x+y) mod 4);
+            Data.all:=0.0;
             Data:=Data+1;
          end loop;
       end loop;
+
       OpenGL.BufferTexture.Unmap(Tex => View.TerrainSelectionBuffer);
    end CreateTerrainSelectionBuffer;
    ---------------------------------------------------------------------------
