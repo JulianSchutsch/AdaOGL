@@ -374,7 +374,6 @@ package body LandscapeView is
       Pos     : Natural;
    begin
       RStartX := Integer'Max(Integer'Min(View.SelectStartX,View.SelectStopX),0);
-      Put_Line("RX:"&Integer'Image(RStartX));
       RStopX  := Integer'Min(Integer'Max(View.SelectStartX,View.SelectStopX),View.TerrainWidth-1);
       RStartY := Integer'Max(Integer'Min(View.SelectStartY,View.SelectStopY),0);
       RStopY  := Integer'Min(Integer'Max(View.SelectStartY,View.SelectStopY),View.TerrainHeight-1);
@@ -408,6 +407,264 @@ package body LandscapeView is
    end Terraform_Flat;
    ---------------------------------------------------------------------------
 
+   procedure Terraform_Up
+     (View : access LandscapeView_Type) is
+      RStartX : Integer;
+      RStartY : Integer;
+      RStopX  : Integer;
+      RStopY  : Integer;
+      Data    : Float_Access;
+      DataP   : Float_Access;
+      Pos     : Natural;
+   begin
+      RStartX := Integer'Max(Integer'Min(View.SelectStartX,View.SelectStopX),0);
+      RStopX  := Integer'Min(Integer'Max(View.SelectStartX,View.SelectStopX),View.TerrainWidth-1);
+      RStartY := Integer'Max(Integer'Min(View.SelectStartY,View.SelectStopY),0);
+      RStopY  := Integer'Min(Integer'Max(View.SelectStartY,View.SelectStopY),View.TerrainHeight-1);
+
+      Data:=AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(View.TerrainGeometryBuffer));
+
+      for y in RStartY..RStopY loop
+         Pos:=y*View.TerrainWidth+RStartX;
+         DataP:=(Data+Pos*4);
+         for x in RStartX..RStopX loop
+            declare
+               Cell:TerrainCell_Type renames View.Terrain(Pos);
+            begin
+               Cell.Flevel    := Cell.FLevel+0.1;
+               DataP.all:=Cell.FLevel;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveX;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveY;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveXY;
+               DataP:=DataP+1;
+            end;
+            Pos:=Pos+1;
+         end loop;
+      end loop;
+      OpenGL.BufferTexture.Unmap(View.TerrainSelectionBuffer);
+   end Terraform_Up;
+   ---------------------------------------------------------------------------
+
+   procedure Terraform_Down
+     (View : access LandscapeView_Type) is
+      RStartX : Integer;
+      RStartY : Integer;
+      RStopX  : Integer;
+      RStopY  : Integer;
+      Data    : Float_Access;
+      DataP   : Float_Access;
+      Pos     : Natural;
+   begin
+      RStartX := Integer'Max(Integer'Min(View.SelectStartX,View.SelectStopX),0);
+      RStopX  := Integer'Min(Integer'Max(View.SelectStartX,View.SelectStopX),View.TerrainWidth-1);
+      RStartY := Integer'Max(Integer'Min(View.SelectStartY,View.SelectStopY),0);
+      RStopY  := Integer'Min(Integer'Max(View.SelectStartY,View.SelectStopY),View.TerrainHeight-1);
+
+      Data:=AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(View.TerrainGeometryBuffer));
+
+      for y in RStartY..RStopY loop
+         Pos:=y*View.TerrainWidth+RStartX;
+         DataP:=(Data+Pos*4);
+         for x in RStartX..RStopX loop
+            declare
+               Cell:TerrainCell_Type renames View.Terrain(Pos);
+            begin
+               Cell.Flevel    := Cell.FLevel-0.1;
+               DataP.all:=Cell.FLevel;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveX;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveY;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveXY;
+               DataP:=DataP+1;
+            end;
+            Pos:=Pos+1;
+         end loop;
+      end loop;
+      OpenGL.BufferTexture.Unmap(View.TerrainSelectionBuffer);
+   end Terraform_Down;
+   ---------------------------------------------------------------------------
+
+   procedure Terraform_Average
+     (View : access LandscapeView_Type) is
+      RStartX : Integer;
+      RStartY : Integer;
+      RStopX  : Integer;
+      RStopY  : Integer;
+      Data    : Float_Access;
+      DataP   : Float_Access;
+      Pos     : Natural;
+   begin
+      RStartX := Integer'Max(Integer'Min(View.SelectStartX,View.SelectStopX),1);
+      RStopX  := Integer'Min(Integer'Max(View.SelectStartX,View.SelectStopX),View.TerrainWidth-2);
+      RStartY := Integer'Max(Integer'Min(View.SelectStartY,View.SelectStopY),1);
+      RStopY  := Integer'Min(Integer'Max(View.SelectStartY,View.SelectStopY),View.TerrainHeight-2);
+
+      Data:=AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(View.TerrainGeometryBuffer));
+
+      for y in RStartY..RStopY loop
+         Pos:=y*View.TerrainWidth+RStartX;
+         DataP:=(Data+Pos*4);
+         for x in RStartX..RStopX loop
+            declare
+               Cell:TerrainCell_Type renames View.Terrain(Pos);
+               Up:TerrainCell_Type renames View.Terrain(Pos-View.TerrainWidth);
+               Down: TerrainCell_Type renames View.Terrain(Pos+View.TerrainWidth);
+               Left:TerrainCell_Type renames View.Terrain(Pos-1);
+               Right:TerrainCell_Type renames View.Terrain(Pos+1);
+            begin
+               Cell.Flevel    := (Cell.FLevel+Up.FLevel+Down.FLevel+Left.FLevel+Right.FLevel)/5.0;
+               DataP.all:=Cell.FLevel;
+               DataP:=DataP+4;
+            end;
+            Pos:=Pos+1;
+         end loop;
+      end loop;
+      OpenGL.BufferTexture.Unmap(View.TerrainSelectionBuffer);
+   end Terraform_Average;
+   ---------------------------------------------------------------------------
+
+   procedure Terraform_Smooth
+     (View : access LandscapeView_Type) is
+      RStartX : Integer;
+      RStartY : Integer;
+      RStopX  : Integer;
+      RStopY  : Integer;
+      Data    : Float_Access;
+      DataP   : Float_Access;
+      Pos     : Natural;
+   begin
+      RStartX := Integer'Max(Integer'Min(View.SelectStartX,View.SelectStopX),1);
+      RStopX  := Integer'Min(Integer'Max(View.SelectStartX,View.SelectStopX),View.TerrainWidth-2);
+      RStartY := Integer'Max(Integer'Min(View.SelectStartY,View.SelectStopY),1);
+      RStopY  := Integer'Min(Integer'Max(View.SelectStartY,View.SelectStopY),View.TerrainHeight-2);
+
+      Data:=AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(View.TerrainGeometryBuffer));
+
+      for y in RStartY..RStopY loop
+         Pos:=y*View.TerrainWidth+RStartX;
+         DataP:=(Data+Pos*4);
+         for x in RStartX..RStopX loop
+            declare
+               Cell:TerrainCell_Type renames View.Terrain(Pos);
+               Width:constant Integer:=View.TerrainWidth;
+               Terrain:Terrain_Access renames View.Terrain;
+            begin
+               Cell.FDeriveX:=(Terrain(Pos+1).FLevel-Terrain(Pos-1).FLevel)*0.5;
+               Cell.FDeriveY:=(Terrain(Pos+Width).FLevel-Terrain(Pos-Width).FLevel)*0.5;
+               Cell.FDeriveXY:=((Terrain(Pos+Width+1).FLevel-Terrain(Pos+Width-1).FLevel)
+                 -(Terrain(Pos-Width+1).FLevel-Terrain(Pos-Width-1).FLevel))*0.0;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveX;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveY;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveXY;
+               DataP:=DataP+1;
+            end;
+            Pos:=Pos+1;
+         end loop;
+      end loop;
+      OpenGL.BufferTexture.Unmap(View.TerrainSelectionBuffer);
+   end Terraform_Smooth;
+   ---------------------------------------------------------------------------
+
+   procedure Terraform_Null
+     (View : access LandscapeView_Type) is
+      RStartX : Integer;
+      RStartY : Integer;
+      RStopX  : Integer;
+      RStopY  : Integer;
+      Data    : Float_Access;
+      DataP   : Float_Access;
+      Pos     : Natural;
+   begin
+      RStartX := Integer'Max(Integer'Min(View.SelectStartX,View.SelectStopX),1);
+      RStopX  := Integer'Min(Integer'Max(View.SelectStartX,View.SelectStopX),View.TerrainWidth-2);
+      RStartY := Integer'Max(Integer'Min(View.SelectStartY,View.SelectStopY),1);
+      RStopY  := Integer'Min(Integer'Max(View.SelectStartY,View.SelectStopY),View.TerrainHeight-2);
+
+      Data:=AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(View.TerrainGeometryBuffer));
+      for y in RStartY..RStopY loop
+         Pos:=y*View.TerrainWidth+RStartX;
+         DataP:=(Data+Pos*4);
+         for x in RStartX..RStopX loop
+            declare
+               Cell:TerrainCell_Type renames View.Terrain(Pos);
+            begin
+               Cell.Flevel    := 0.0;
+               Cell.FDeriveX  := 0.0;
+               Cell.FDeriveY  := 0.0;
+               Cell.FDeriveXY := 0.0;
+               DataP.all:=Cell.FLevel;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveX;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveY;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveXY;
+               DataP:=DataP+1;
+            end;
+            Pos:=Pos+1;
+         end loop;
+      end loop;
+      OpenGL.BufferTexture.Unmap(View.TerrainSelectionBuffer);
+   end Terraform_Null;
+   ---------------------------------------------------------------------------
+
+   procedure Terraform_Sin
+     (View : access LandscapeView_Type;
+      Ampl : GLFloat_Type;
+      Kx   : GLFloat_Type;
+      Ky   : GLFloat_Type) is
+
+      RStartX : Integer;
+      RStartY : Integer;
+      RStopX  : Integer;
+      RStopY  : Integer;
+      Data    : Float_Access;
+      DataP   : Float_Access;
+      Pos     : Natural;
+   begin
+      RStartX := Integer'Max(Integer'Min(View.SelectStartX,View.SelectStopX),1);
+      RStopX  := Integer'Min(Integer'Max(View.SelectStartX,View.SelectStopX),View.TerrainWidth-2);
+      RStartY := Integer'Max(Integer'Min(View.SelectStartY,View.SelectStopY),1);
+      RStopY  := Integer'Min(Integer'Max(View.SelectStartY,View.SelectStopY),View.TerrainHeight-2);
+
+      Data:=AddressToFloatAccess(OpenGL.BufferTexture.MapWriteOnly(View.TerrainGeometryBuffer));
+      for iy in RStartY..RStopY loop
+         Pos:=iy*View.TerrainWidth+RStartX;
+         DataP:=(Data+Pos*4);
+         for ix in RStartX..RStopX loop
+            declare
+               Cell:TerrainCell_Type renames View.Terrain(Pos);
+               x : constant GLFloat_Type:=GLFloat_Type(ix);
+               y : constant GLFloat_Type:=GLFloat_Type(iy);
+            begin
+               Cell.Flevel    := Cell.Flevel+Ampl*Sin(Kx*x+Ky*y,2.0*Ada.Numerics.Pi);
+               Cell.FDeriveX  := Cell.FDeriveX+Ampl*Kx*Cos(Kx*x+Ky*y,2.0*Ada.Numerics.Pi);
+               Cell.FDeriveY  := Cell.FDeriveY+Ampl*Ky*Cos(Kx*x+Ky*y,2.0*Ada.Numerics.Pi);
+               Cell.FDeriveXY := Cell.FDeriveXY-Ampl*Kx*Ky*Sin(Kx*x+Ky*y,2.0*Ada.Numerics.Pi);
+               DataP.all:=Cell.FLevel;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveX;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveY;
+               DataP:=DataP+1;
+               DataP.all:=Cell.FDeriveXY;
+               DataP:=DataP+1;
+            end;
+            Pos:=Pos+1;
+         end loop;
+      end loop;
+      OpenGL.BufferTexture.Unmap(View.TerrainSelectionBuffer);
+   end Terraform_Sin;
+   ---------------------------------------------------------------------------
+
    function CharacterInput
      (View  : access LandscapeView_Type;
       Chars : Unbounded_String)
@@ -419,7 +676,7 @@ package body LandscapeView is
          CalcPerspective(View);
          return True;
       elsif Chars="-" then
-         View.Translate(2):=GLFloat_Type'Max(View.Translate(2)-1.0,-30.0);
+         View.Translate(2):=GLFloat_Type'Max(View.Translate(2)-1.0,-60.0);
          CalcPerspective(View);
          return True;
       elsif Chars="a" then
@@ -433,9 +690,43 @@ package body LandscapeView is
       elsif Chars="f" then
          Terraform_Flat(View);
          return True;
+      elsif Chars="l" then
+         Terraform_Average(View);
+         return True;
+      elsif Chars="k" then
+         Terraform_Smooth(View);
+         return True;
+      elsif Chars="n" then
+         Terraform_Null(View);
+         return True;
+      elsif Chars="1" then
+         Terraform_Sin(View,0.1,1.0/5.0,1.0/5.0);
+         Return True;
+      elsif Chars="2" then
+         Terraform_Sin(View,0.1,1.0/5.0,0.0);
+         Return True;
+      elsif Chars="3" then
+         Terraform_Sin(View,0.1,0.0,1.0/5.0);
+         Return True;
       end if;
       return False;
    end CharacterInput;
+   ---------------------------------------------------------------------------
+
+   function KeyDown
+     (View : access LandscapeView_Type;
+      Key  : Key_Enum)
+      return Boolean is
+   begin
+      if Key=KeyPageUp then
+         Terraform_Up(View);
+         return True;
+      elsif Key=KeyPageDown then
+         Terraform_Down(View);
+         return True;
+      end if;
+      return False;
+   end KeyDown;
    ---------------------------------------------------------------------------
 
    procedure ProcessMouseMove
@@ -449,8 +740,6 @@ package body LandscapeView is
          when MouseModeSelect =>
             ModifySelectionBuffer(View,View.SelectStartX,View.SelectStartY,View.SelectStopX,View.SelectStopY,0.0);
             TerrainRayIntersect(View,X,Y,View.SelectStopX,View.SelectStopY);
-            Put_Line("X:"&Integer'Image(View.SelectStartX)&":"&Integer'Image(View.SelectStopX));
-            Put_Line("Y:"&Integer'Image(View.SelectStartY)&":"&Integer'Image(View.SelectStopY));
             ModifySelectionBuffer(View,View.SelectStartX,View.SelectStartY,View.SelectStopX,View.SelectStopY,1.0);
          when MouseModeMove =>
             declare

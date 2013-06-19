@@ -49,9 +49,9 @@ package body OpenGL.Context.Win32 is
       KeyUnknown,KeyUnknown,KeyUnknown,KeyUnknown,  -- 20..23
       KeyUnknown,KeyUnknown,KeyUnknown,KeyUnknown,  -- 24..27
       KeyUnknown,KeyUnknown,KeyUnknown,KeyUnknown,  -- 28..31
-      KeyUnknown,KeyUnknown,KeyUnknown,KeyEnd,      -- 32..35
-      KeyHome   ,KeyLeft,KeyUnknown,KeyRight,       -- 36..39
-      KeyUnknown,KeyUnknown,KeyUnknown,KeyUnknown,  -- 40..43
+      KeyUnknown,KeyPageUp,KeyPageDown,KeyEnd,      -- 32..35
+      KeyHome   ,KeyLeft,KeyUp,KeyRight,       -- 36..39
+      KeyDown,KeyUnknown,KeyUnknown,KeyUnknown,  -- 40..43
       KeyUnknown,KeyUnknown,KeyDelete ,KeyUnknown,  -- 44..47
       KeyUnknown,KeyUnknown,KeyUnknown,KeyUnknown,  -- 48..51
       KeyUnknown,KeyUnknown,KeyUnknown,KeyUnknown,  -- 52..55
@@ -423,6 +423,7 @@ package body OpenGL.Context.Win32 is
 
          when WM_KEYDOWN =>
             if wParam<=255 then
+               Put_Line("WMKEYDOWN:"&WPARAM_TYPE'Image(wParam)&"->"&Key_Enum'Image(KeyTable(Integer(wparam))));
                GUI.ContextKeyDown
                  (Context => Context_ClassAccess(Context),
                   Key     => KeyTable(Integer(wparam)));

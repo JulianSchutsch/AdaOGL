@@ -34,11 +34,13 @@ with GUI.Window;
 with GUI.Button;
 with GUI.Themes;
 with GUI.UseImplementations;
+with GUI.Console;
 with YellowBlue;
 with Config;
 with ProcessLoop;
 with Basics; use Basics;
 with BoundsCalc; use BoundsCalc;
+with Canvas;
 
 with LandscapeView;
 
@@ -49,6 +51,7 @@ procedure Landscape is
    Button            : GUI.Button.Button_ClassAccess;
    Theme             : GUI.Themes.Implementation_Type;
    Configuration     : Config.Config_Type;
+   View              : LandscapeView.LandscapeView_Access;
 
    Terminated        : Boolean:=False;
    pragma Warnings(Off,Terminated); -- Terminated is never changed
@@ -83,40 +86,62 @@ procedure Landscape is
      (CallBackObject : AnyObject_ClassAccess) is
       pragma Unreferenced(CallBackObject);
 
-      View    : LandscapeView.LandscapeView_Access;
---      Window  : GUI.Window.Window_ClassAccess;
+      Content : GUI.Console.Console_ClassAccess;
+      Window  : GUI.Window.Window_ClassAccess;
       WBounds : Bounds_Type;
+
+      TextColor : constant Canvas.Color_Type:=16#FFFFFFFF#;
 
    begin
 
---      Window:=Theme.NewWindow(Context.BasisArea);
---      Window.CallBackObject:=AnyObject_ClassAccess(Window);
---      Window.OnCloseWindow:=CloseWindowClick'Unrestricted_Access;
---      Window.SetCaption(U("Landscape"));
---      Window.SetBounds
---        (Top     => 10,
---         Left    => 10,
---         Height  => 600,
---         Width   => 800,
---         Visible => True);
---      Window.SetButtons((GUI.Window.WindowButtonClose=>true));
+      Window:=Theme.NewWindow(Context.BasisArea);
+      Window.CallBackObject:=AnyObject_ClassAccess(Window);
+      Window.OnCloseWindow:=CloseWindowClick'Unrestricted_Access;
+      Window.SetCaption(U("Help"));
+      Window.SetBounds
+        (Top     => 10,
+         Left    => 10,
+         Height  => 600,
+         Width   => 800,
+         Visible => True);
+      Window.SetButtons((GUI.Window.WindowButtonClose=>true));
 
-      WBounds:=Context.BasisArea.GetClientBounds;
+      WBounds:=Window.GetClientBounds;
 
-      View:=LandscapeView.NewLandscapeView
-        (Parent => GUI.Object_CLassAccess(Context.BasisArea),
-         Theme  => Theme);
-      View.SetBounds
+      Content:=Theme.NewConsole(GUI.Object_ClassAccess(Window));
+
+      Content.SetBounds
         (Top     => 0,
          Left    => 0,
          Height  => WBounds.Height,
          Width   => WBounds.Width,
          Visible => True);
-      View.SetAnchors
+      Content.SetAnchors
         (Top    => True,
          Left   => True,
          Right  => True,
          Bottom => True);
+
+      Content.WriteLine(U("Bicubic landscape demo"),TextColor);
+      Content.WriteLine(U(""),TextColor);
+      Content.WriteLine(U("Mouse buttons:"),TextColor);
+      Content.WriteLine(U(" Left  : Select area"),TextColor);
+      Content.WriteLine(U(" Right : Move view"),TextColor);
+      Content.WriteLine(U(""),TextColor);
+      Content.WriteLine(U("Keys:"),TextColor);
+      Content.WriteLine(U(" d : Rotate view anti clockwise"),TextColor);
+      Content.WriteLine(U(" s : Rotate view clockwise"),TextColor);
+      Content.WriteLine(U(" + : Zoom in"),TextColor);
+      Content.WriteLine(U(" - : Zoom out"),TextColor);
+      Content.WriteLine(U(" f : Produce flat terrain, level 8.0"),TextColor);
+      Content.WriteLine(U(" n : Produce flat terrain, level 0.0"),TextColor);
+      Content.WriteLine(U(" l : Average terrain"),TextColor);
+      Content.WriteLine(U(" k : Smooth terrain"),TextColor);
+      Content.WriteLine(U(" 1 : Add sin with k=(1/5,1/5) and amplitude of 0.1"),TextColor);
+      Content.WriteLine(U(" 2 : Add sin with k=(1/5,0) and amplitude of 0.1"),TextColor);
+      Content.WriteLine(U(" 3 : Add sin with k=(0,1/5) and amplitude of 0.1"),TextColor);
+      Content.WriteLine(U(" Page Up   : Move terrain up by 0.1"),TextColor);
+      Content.WriteLine(U(" Page Down : Move terrain down by 0.1"),TextColor);
 
    end NewWindowClick;
    ---------------------------------------------------------------------------
@@ -142,8 +167,8 @@ begin
 
    Context.OnClose:=ContextClose'Unrestricted_Access;
 
-   Button:=Theme.NewButton(Context.BasisArea);
-   Button.SetCaption(U("New Window"));
+   Button:=Theme.NewButton(Context.WindowArea);
+   Button.SetCaption(U("Help"));
    Button.SetBounds
      (Top     => Context.BasisArea.GetBounds.Height-40,
       Left    => 0,
@@ -157,7 +182,25 @@ begin
       Bottom => True);
    Button.OnClick := NewWindowClick'Unrestricted_Access;
 
-   NewWindowClick(null);
+   declare
+      WBounds : constant BoundsCalc.Bounds_Type:=Context.BasisArea.GetClientBounds;
+   begin
+
+      View:=LandscapeView.NewLandscapeView
+        (Parent => GUI.Object_CLassAccess(Context.BasisArea),
+         Theme => Theme);
+      View.SetBounds
+        (Top => 0,
+         Left => 0,
+         Height => WBounds.Height,
+         Width => WBounds.Width,
+         Visible => True);
+      View.SetAnchors
+        (Top => True,
+         Left => True,
+         Right => True,
+         Bottom => True);
+   end;
 
    while not Terminated loop
       ProcessLoop.Process;

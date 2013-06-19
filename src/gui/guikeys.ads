@@ -34,6 +34,8 @@ package GUIKeys is
       KeyBackspace,
       KeyReturn,
       KeyEnter,
+      KeyPageUp,
+      KeyPageDown,
       KeyHome,
       KeyEnd,
       KeyDelete);

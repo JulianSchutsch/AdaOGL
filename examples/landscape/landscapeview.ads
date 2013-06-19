@@ -7,6 +7,7 @@ with VectorMath; use VectorMath;
 with GUIMouse; use GUIMouse;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Real_Time;
+with GUIKeys; use GUIKeys;
 
 package LandscapeView is
 
@@ -78,6 +79,12 @@ package LandscapeView is
    function CharacterInput
      (View  : access LandscapeView_Type;
       Chars : Unbounded_String)
+      return Boolean;
+
+   overriding
+   function KeyDown
+     (View : access LandscapeView_Type;
+      Key  : Key_Enum)
       return Boolean;
 
    overriding
