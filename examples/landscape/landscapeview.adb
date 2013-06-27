@@ -49,7 +49,7 @@ package body LandscapeView is
        " vec4 Data2=texelFetchBuffer(terrain,texelPos+TerrainWidth);"&LineFeed&
        " vec4 Data3=texelFetchBuffer(terrain,texelPos+1);"&LineFeed&
        " vec4 Data4=texelFetchBuffer(terrain,texelPos+TerrainWidth+1);"&LineFeed&
-       " float SelFlag = texelFetchBuffer(select,texelPos);"&LineFeed&
+       " float SelFlag = texelFetchBuffer(select,texelPos).x;"&LineFeed&
        " mat4 C=mat4(Data1.r,Data3.r,Data1.g,Data3.g,"&LineFeed&
        "             Data2.r,Data4.r,Data2.g,Data4.g,"&LineFeed&
        "             Data1.b,Data3.b,Data1.a,Data3.a,"&LineFeed&
@@ -106,7 +106,7 @@ package body LandscapeView is
        " int deltaY=gl_InstanceID/ViewWidth;"&LineFeed&
        " int deltaX=gl_InstanceID-deltaY*ViewWidth;"&LineFeed&
        " int texelPos=(ViewTop+deltaY)*TerrainWidth+deltaX+ViewLeft;"&LineFeed&
-       " float SelFlag = texelFetchBuffer(select,texelPos);"&LineFeed&
+       " float SelFlag = texelFetchBuffer(select,texelPos).x;"&LineFeed&
        " float tx     = ViewLeft+deltaX+inVertex.x;"&LineFeed&
        " float px     = tx*WaveVector-Time*Frequency;"&LineFeed&
        " float deltaH = sin(px)+5.0;"&LineFeed&

@@ -19,20 +19,20 @@
 
 pragma Ada_2005;
 
-with OpenGL.Context.Xlib;
+with OpenGL.Context.Win32;
 with BitmapFonts;
 package body GUI.UseImplementations is
 
    procedure Register is
    begin
-      OpenGL.Context.Xlib.Register;
+      OpenGL.Context.Win32.Register;
       BitmapFonts.Register;
    end Register;
    ---------------------------------------------------------------------------
 
    procedure Unregister is
    begin
-      OpenGL.Context.Xlib.Unregister;
+      OpenGL.Context.Win32.Unregister;
       BitmapFonts.Unregister;
    end Unregister;
    ---------------------------------------------------------------------------
