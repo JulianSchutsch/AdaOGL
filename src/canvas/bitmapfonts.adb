@@ -23,6 +23,7 @@ with BitmapFonts.Data; use BitmapFonts.Data;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Fonts;
 with Basics; use Basics;
+with Canvas;
 --with Ada.Text_IO; use Ada.Text_IO;
 --with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
 
