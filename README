@@ -5,7 +5,7 @@ Please look at the examples in /examples.
 
 Requirements on Debian:
 
- Required : libx11dev (xlib.h)
+ Required : libx11-dev (xlib.h)
             libgl1-mesa-dev (GL.so)
             gnat-4.6 or higher
             gprbuild
