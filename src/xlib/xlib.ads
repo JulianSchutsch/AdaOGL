@@ -285,6 +285,7 @@ package Xlib is
 
    Button1 : constant:=1;
    Button2 : constant:=2;
+   Button3 : constant:=3;
 
    XLookupChars  : constant Status_Type:=2;
    XLookupBoth   : constant Status_Type:=4;

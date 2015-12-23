@@ -665,6 +665,17 @@ package body LandscapeView is
    end Terraform_Sin;
    ---------------------------------------------------------------------------
 
+   procedure Translate
+     (View          : access LandscapeView_Type;
+      amountforward : GLFloat_Type;
+      amountside    : GLFloat_Type) is
+   begin
+     View.Translate(0) := View.Translate(0)-sin(view.RotateZ)*amountforward-cos(view.RotateZ)*amountside;
+     View.Translate(1) := View.Translate(1)-cos(view.RotateZ)*amountforward+sin(view.RotateZ)*amountside;
+     CalcPerspective(View);
+   end Translate;
+   --------------------------------------------------------------------------
+
    function CharacterInput
      (View  : access LandscapeView_Type;
       Chars : Unbounded_String)
@@ -685,6 +696,14 @@ package body LandscapeView is
          return True;
       elsif Chars="d" then
          View.RotateZ:=View.RotateZ+0.01;
+         CalcPerspective(View);
+         return True;
+      elsif Chars="w" then
+         View.RotateX:=View.RotateX+0.01;
+         CalcPerspective(View);
+         return True;
+      elsif Chars="s" then
+         View.RotateX:=View.RotateX-0.1;
          CalcPerspective(View);
          return True;
       elsif Chars="f" then
@@ -724,6 +743,22 @@ package body LandscapeView is
       elsif Key=KeyPageDown then
          Terraform_Down(View);
          return True;
+      end if;
+      if Key=KeyUp then
+         Translate(View, 1.0, 0.0);
+         return True;
+      end if;
+      if Key=KeyDown then
+         Translate(View, -1.0, 0.0);
+         return True;
+      end if;
+      if Key=KeyLeft then
+        Translate(View, 0.0, -1.0);
+        return True;
+      end if;
+      if Key=KeyRight then
+        Translate(View, 0.0, 1.0);
+        return True;
       end if;
       return False;
    end KeyDown;

@@ -199,6 +199,12 @@ package body OpenGL.Context.Xlib is
                         AbsY        => Integer(Event.ButtonPress.y-2));
                   when Button2 =>
                      null;
+                  when Button3 =>
+                     ContextMouseDown
+                       (Context    => Context_ClassAccess(Context),
+                        MouseButton => RightButton,
+                        AbsX        => Integer(Event.ButtonPress.x),
+                        AbsY        => Integer(Event.ButtonPress.y-2));
                   when others =>
                      Put("Unknown Button pressed");
                      Put(Integer(Event.ButtonPress.button));
@@ -211,6 +217,12 @@ package body OpenGL.Context.Xlib is
                      ContextMouseUp
                        (Context     => Context_ClassAccess(Context),
                         MouseButton => LeftButton,
+                        AbsX        => Integer(Event.ButtonPress.x),
+                        AbsY        => Integer(Event.ButtonPress.y-2));
+                  when Button3 =>
+                     ContextMouseUp
+                       (Context     => Context_ClassAccess(Context),
+                        MouseButton => RightButton,
                         AbsX        => Integer(Event.ButtonPress.x),
                         AbsY        => Integer(Event.ButtonPress.y-2));
                   when Button2 =>
